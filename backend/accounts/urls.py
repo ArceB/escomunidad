@@ -1,0 +1,26 @@
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+
+from .views import (
+    TokenObtainPairView, TokenRefresh, MeViewSet,
+    UserViewSet, EntidadViewSet, AnuncioViewSet, NotificacionViewSet,
+    AprobacionResponsableViewSet, AprobacionAdministradorViewSet,
+    GestionEntidadViewSet, ResponsableEntidadViewSet
+)
+
+router = DefaultRouter()
+router.register(r"me", MeViewSet, basename="me")
+router.register(r"users", UserViewSet, basename="users")
+router.register(r"entidades", EntidadViewSet, basename="entidades")
+router.register(r"anuncios", AnuncioViewSet, basename="anuncios")
+router.register(r"notificaciones", NotificacionViewSet, basename="notificaciones")
+router.register(r"aprobaciones-responsable", AprobacionResponsableViewSet, basename="aprob-resp")
+router.register(r"aprobaciones-admin", AprobacionAdministradorViewSet, basename="aprob-admin")
+router.register(r"gestion-entidad", GestionEntidadViewSet, basename="gestion-entidad")
+router.register(r"responsable-entidad", ResponsableEntidadViewSet, basename="responsable-entidad")
+
+urlpatterns = [
+    path("", include(router.urls)),
+    path("token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
+    path("token/refresh/", TokenRefresh.as_view(), name="token_refresh"),
+]
