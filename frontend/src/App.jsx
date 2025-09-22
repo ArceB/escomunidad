@@ -9,6 +9,9 @@ import { SidebarProvider } from "app/contexts/sidebar/Provider";
 import { ThemeProvider } from "app/contexts/theme/Provider";
 import router from "app/router/router";
 
+// 👇 Importa tu chat flotante
+import FloatingChat from "app/pages/apps/ai-chat/FloatingChat";
+
 // ----------------------------------------------------------------------
 
 function App() {
@@ -18,7 +21,11 @@ function App() {
         <LocaleProvider>
           <BreakpointProvider>
             <SidebarProvider>
+              {/* 🚀 Tu aplicación normal */}
               <RouterProvider router={router} />
+
+              {/* 💬 Chat flotante disponible en toda la app */}
+              <FloatingChat />
             </SidebarProvider>
           </BreakpointProvider>
         </LocaleProvider>

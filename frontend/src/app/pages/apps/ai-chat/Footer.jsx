@@ -1,56 +1,71 @@
-// Import Dependencies
-import {
-  MicrophoneIcon,
-  PaperAirplaneIcon,
-  PhotoIcon,
-} from "@heroicons/react/24/outline";
+import { PaperAirplaneIcon } from "@heroicons/react/24/outline";
 import { object, string } from "yup";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useEffect } from "react";
 
-// Local Imports
-import { Button, Input, Swap, SwapOff, SwapOn } from "components/ui";
+import { Button, Input } from "components/ui";
 import { useChatContext } from "./Chat.context";
 
-// ----------------------------------------------------------------------
-
 const schema = object().shape({
-  content: string().required("Please enter the message"),
+  content: string().required("Por favor, escribe un mensaje"),
 });
 
 export function Footer() {
-  const { newMessage, currentChat } = useChatContext();
+  const { newMessage, currentChat, isLoading, setIsLoading } = useChatContext();
 
-  const {
-    register,
-    handleSubmit,
-    formState: { isSubmitSuccessful },
-    setFocus,
-    reset,
-    watch,
-  } = useForm({
+  const { register, handleSubmit, setFocus, reset, watch } = useForm({
     resolver: yupResolver(schema),
-    defaultValues: {
-      content: "",
-    },
+    defaultValues: { content: "" },
   });
-
-  useEffect(() => {
-    if (isSubmitSuccessful) {
-      reset();
-    }
-  }, [isSubmitSuccessful, reset]);
-
-  useEffect(() => {
-    reset();
-    setTimeout(() => setFocus("content"));
-  }, [currentChat?.id, reset, setFocus]);
 
   const watchInput = watch("content");
 
-  const onSubmit = (formData) => {
-    newMessage(currentChat?.id, formData);
+  useEffect(() => {
+    setTimeout(() => setFocus("content"));
+  }, [currentChat?.id, setFocus]);
+
+  const onSubmit = async (formData) => {
+    console.log("✅ onSubmit disparado con:", formData);
+
+    const chatId = newMessage(currentChat?.id, {
+      role: "user",
+      content: formData.content,
+    });
+
+    setIsLoading(true);
+
+    try {
+      console.log("➡️ Mandando a backend:", formData.content);
+
+      const response = await fetch("http://127.0.0.1:8000/chatbot/ask/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: formData.content }),
+      });
+
+      console.log("⬅️ Respuesta cruda del fetch:", response);
+
+      if (!response.ok) throw new Error(`Error: ${response.status}`);
+
+      const data = await response.json();
+      console.log("📦 JSON recibido:", data);
+
+      newMessage(chatId, {
+        role: "assistant",
+        content: data.reply ?? "⚠ El servidor no devolvió respuesta",
+      });
+    } catch (error) {
+      console.error("💥 Error en el fetch:", error);
+      newMessage(chatId, {
+        role: "assistant",
+        content: "⚠ No se pudo conectar con el servidor.",
+      });
+    } finally {
+      reset();
+      setIsLoading(false);
+      setTimeout(() => setFocus("content"));
+    }
   };
 
   return (
@@ -63,37 +78,46 @@ export function Footer() {
         <Input
           unstyled
           {...register("content")}
-          classNames={{
-            root: "w-full",
-            input: "placeholder:text-gray-400 dark:placeholder:text-dark-300",
-          }}
-          placeholder="Ask me anything..."
-          className="placeholder:text-gray-400 dark:placeholder:text-dark-300"
+          disabled={isLoading}
+          classNames={{ root: "w-full", input: "placeholder:text-gray-400 dark:placeholder:text-dark-300" }}
+          placeholder={isLoading ? "Esperando respuesta..." : "Escribe tu mensaje..."}
         />
-        <div className="flex">
-          <Button variant="flat" isIcon className="size-9 rounded-full">
-            <PhotoIcon className="size-5" />
-          </Button>
-          <Swap value={watchInput === "" ? "off" : "on"}>
-            <SwapOn
-              component={Button}
-              variant="flat"
-              type="submit"
-              isIcon
-              className="size-9 rounded-full"
+        <Button
+          variant="flat"
+          type="submit"
+          isIcon
+          disabled={!watchInput || isLoading}
+          className={`size-9 rounded-full transition-colors ${
+            !watchInput || isLoading
+              ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+              : "bg-blue-500 text-white hover:bg-blue-600"
+          }`}
+        >
+          {isLoading ? (
+            <svg
+              className="size-5 animate-spin text-white"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
             >
-              <PaperAirplaneIcon className="size-5 rtl:rotate-180" />
-            </SwapOn>
-            <SwapOff
-              component={Button}
-              variant="flat"
-              isIcon
-              className="size-9 rounded-full"
-            >
-              <MicrophoneIcon className="size-5" />
-            </SwapOff>
-          </Swap>
-        </div>
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              ></circle>
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+              ></path>
+            </svg>
+          ) : (
+            <PaperAirplaneIcon className="size-5 rtl:rotate-180" />
+          )}
+        </Button>
       </div>
     </form>
   );
