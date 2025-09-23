@@ -1,34 +1,96 @@
-// Import Dependencies
-import { useEffect } from "react";
-
-// Local Imports
+import { useEffect, useRef, useState } from "react";
 import { ScrollShadow } from "components/ui";
 import { Message } from "./Message";
 import { useChatContext } from "../Chat.context";
 import { Placeholder } from "./Placeholder";
 
-// ----------------------------------------------------------------------
-
 export function Conversation() {
-  const { currentChat } = useChatContext();
+  const { currentChat, isLoading } = useChatContext();
+  const panelRef = useRef(null);
+  const contentRef = useRef(null);
+  const bottomRef = useRef(null);
+  const [isAtBottom, setIsAtBottom] = useState(true);
 
+  // Detecta si el usuario está al fondo (tolerancia 50px)
+  const recomputeIsAtBottom = () => {
+    const el = panelRef.current;
+    if (!el) return;
+    const atBottom = el.scrollHeight - el.scrollTop <= el.clientHeight + 50;
+    setIsAtBottom(atBottom);
+  };
+
+  const scrollToBottom = (smooth = true) => {
+    const el = panelRef.current;
+    if (!el || !bottomRef.current) return;
+    bottomRef.current.scrollIntoView({ behavior: smooth ? "smooth" : "auto", block: "end" });
+  };
+
+  // Listener de scroll del usuario
+  const handleScroll = () => {
+    recomputeIsAtBottom();
+  };
+
+  // Autoscroll cuando cambian mensajes o estado de carga,
+  // pero solo si el usuario está al fondo
   useEffect(() => {
-    const scroll = document.querySelector("[data-conversation-panel]");
-    scroll?.scrollTo({
-      top: scroll.scrollHeight,
-    });
-  }, [currentChat?.id, currentChat?.messages?.length]);
+    if (isAtBottom) scrollToBottom(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentChat?.messages?.length, isLoading]);
 
-  if (!(currentChat && currentChat.messages.length > 0)) return <Placeholder />;
+  // Autoscroll cuando cambia de chat
+  useEffect(() => {
+    // al abrir un chat, baja sin animación
+    scrollToBottom(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentChat?.id]);
+
+  // Reaccionar a resize de ventana (teclado móvil, cambios de viewport)
+  useEffect(() => {
+    const onResize = () => {
+      if (isAtBottom) scrollToBottom(false);
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAtBottom]);
+
+  // Reaccionar a cambios de tamaño del contenido (por ejemplo, llega texto, cambia layout)
+  useEffect(() => {
+    if (!contentRef.current) return;
+    const ro = new ResizeObserver(() => {
+      if (isAtBottom) scrollToBottom(false);
+    });
+    ro.observe(contentRef.current);
+    return () => ro.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAtBottom, currentChat?.id]);
+
+  // Si no hay mensajes, muestra placeholder
+  if (!(currentChat && currentChat.messages.length > 0)) {
+    return (
+      <ScrollShadow
+        data-conversation-panel
+        className="mx-auto flex h-full w-full max-w-4xl flex-col overflow-y-auto"
+      >
+        <Placeholder />
+      </ScrollShadow>
+    );
+  }
 
   return (
     <ScrollShadow
+      ref={panelRef}
+      onScroll={handleScroll}
       data-conversation-panel
-      className="mx-auto flex w-full max-w-4xl grow flex-col space-y-8 overflow-y-auto px-4 py-4"
+      className="mx-auto flex h-full w-full max-w-4xl flex-col overflow-y-auto px-4 py-4"
     >
-      {currentChat.messages.map((message) => (
-        <Message key={message.id} {...message} />
-      ))}
+      <div ref={contentRef} className="flex flex-col space-y-8">
+        {currentChat.messages.map((message) => (
+          <Message key={message.id} role={message.role} content={message.content} />
+        ))}
+        {/* ancla inferior */}
+        <div ref={bottomRef} />
+      </div>
     </ScrollShadow>
   );
 }

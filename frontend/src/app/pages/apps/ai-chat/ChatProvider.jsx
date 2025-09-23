@@ -4,84 +4,55 @@ import { useState } from "react";
 
 // Local Imports
 import { ChatContextProvider } from "./Chat.context";
-import { fakeChats } from "./data";
 import { randomId } from "utils/randomId";
 
 // ----------------------------------------------------------------------
 
-const answerPromise = () =>
-  new Promise((resolve) =>
-    setTimeout(
-      () =>
-        resolve({
-          answer:
-            "I bring information to your fingertips, answer your questions with clarity, and keep conversations interesting. I can handle a wide range of topics, from factual inquiries to creative writing.",
-        }),
-      1000,
-    ),
-  );
-
 export function ChatProvider({ children }) {
-  const [chats, setChats] = useState(fakeChats);
+  const [chats, setChats] = useState([]);
   const [activeChatId, setActiveChatId] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const currentChat = chats.find((chat) => chat.id === activeChatId);
 
-  const getQuestion = async (chatId, messageId) => {
-    try {
-      const response = await answerPromise();
-      setChats((prevChats) => {
-        const updatedChats = prevChats.slice();
-        const chatIndex = updatedChats.findIndex((chat) => chat.id === chatId);
-
-        updatedChats[chatIndex].messages.find(
-          (message) => message.id === messageId,
-        ).a = response.answer;
-
-        return updatedChats;
-      });
-    } catch (error) {
-      console.error("Error fetching AI response:", error);
-    }
-  };
-
+  // ✅ newMessage: siempre devuelve el chatId usado
   const newMessage = (chatId, data) => {
     const now = new Date();
-    const messageId = randomId();
-    const updatedChats = chats.slice();
+    const msg = {
+      id: randomId(),
+      role: data.role,
+      content: data.content,
+      createdAt: now,
+    };
 
-    const chatIndex = updatedChats.findIndex((chat) => chat.id === chatId);
-    const currentChatId = chatIndex === -1 ? randomId() : chatId;
+    // Generar/usar chatId antes de mutar el estado
+    const idToUse = chatId ?? activeChatId ?? randomId();
 
-    if (chatIndex === -1) {
-      const newChat = {
-        id: currentChatId,
-        messages: [
-          {
-            id: messageId,
-            q: data.content,
-            a: "",
-            createdAt: now,
-          },
-        ],
-        createdAt: now,
+    setChats((prev) => {
+      const idx = prev.findIndex((c) => c.id === idToUse);
+
+      if (idx === -1) {
+        // Crear chat nuevo con el primer mensaje
+        const newChat = {
+          id: idToUse,
+          messages: [msg],
+          createdAt: now,
+        };
+        return [newChat, ...prev];
+      }
+
+      // Agregar mensaje al chat existente (inmutable)
+      const updatedChat = {
+        ...prev[idx],
+        messages: [...prev[idx].messages, msg],
       };
-      updatedChats.unshift(newChat);
-      setActiveChatId(currentChatId);
-      setChats([...updatedChats]);
-    } else {
-      const updatedChat = updatedChats[chatIndex];
-      updatedChat.messages.push({
-        id: messageId,
-        q: data.content,
-        a: "",
-        createdAt: now,
-      });
-      updatedChats.splice(chatIndex, 1);
-      setChats([updatedChat, ...updatedChats]);
-    }
+      const arr = prev.slice();
+      arr.splice(idx, 1);
+      return [updatedChat, ...arr];
+    });
 
-    getQuestion(currentChatId, messageId);
+    setActiveChatId(idToUse);
+    return idToUse; // 👈 devolvemos el id efectivo
   };
 
   const value = {
@@ -89,6 +60,8 @@ export function ChatProvider({ children }) {
     currentChat,
     newMessage,
     setActiveChatId,
+    isLoading,
+    setIsLoading,
   };
 
   return <ChatContextProvider value={value}>{children}</ChatContextProvider>;

@@ -1,5 +1,5 @@
 // Import Dependencies
-import { Navigate, useLocation, useOutlet } from "react-router";
+/**import { Navigate, useLocation, useOutlet } from "react-router";
 
 // Local Imports
 import { useAuthContext } from "app/contexts/auth/context";
@@ -23,4 +23,14 @@ export default function AuthGuard() {
   }
 
   return <>{outlet}</>;
+}
+*/
+// Import Dependencies
+import { useOutlet } from "react-router";
+
+// ----------------------------------------------------------------------
+
+export default function AuthGuard() {
+  const outlet = useOutlet();
+  return <>{outlet}</>; // 🔓 siempre deja pasar, no revisa login
 }
