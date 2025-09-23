@@ -14,7 +14,7 @@ function RoleRedirect() {
   const { role } = useAuthContext();
 
   if (role === "responsable") return <Navigate to="/dashboards/education" />;
-  if (role === "admin") return <Navigate to="/dashboards/doctor" />;
+  if (role === "admin") return <Navigate to="/dashboards/authors" />;
   if (role === "superadmin") return <Navigate to="/dashboards/personal" />;
 
   return <Navigate to="/dashboards/crm-analytics" />; // default usuario
@@ -259,142 +259,6 @@ const protectedRoutes = {
           ],
         },
         {
-          path: "/forms",
-          children: [
-            {
-              index: true,
-              element: <Navigate to="/forms/input" />,
-            },
-            {
-              path: "ekyc-form",
-              lazy: async () => ({
-                Component: (await import("app/pages/forms/KYCForm")).default,
-              }),
-            },
-            {
-              path: "add-product-form",
-              lazy: async () => ({
-                Component: (await import("app/pages/forms/add-product-form"))
-                  .default,
-              }),
-            },
-            {
-              path: "new-post-form",
-              lazy: async () => ({
-                Component: (await import("app/pages/forms/new-post-form"))
-                  .default,
-              }),
-            },
-            {
-              path: "input",
-              lazy: async () => ({
-                Component: (await import("app/pages/forms/input")).default,
-              }),
-            },
-            {
-              path: "input-group",
-              lazy: async () => ({
-                Component: (await import("app/pages/forms/input-group"))
-                  .default,
-              }),
-            },
-            {
-              path: "input-mask",
-              lazy: async () => ({
-                Component: (await import("app/pages/forms/input-mask")).default,
-              }),
-            },
-            {
-              path: "checkbox",
-              lazy: async () => ({
-                Component: (await import("app/pages/forms/checkbox")).default,
-              }),
-            },
-            {
-              path: "radio",
-              lazy: async () => ({
-                Component: (await import("app/pages/forms/radio")).default,
-              }),
-            },
-            {
-              path: "switch",
-              lazy: async () => ({
-                Component: (await import("app/pages/forms/switch")).default,
-              }),
-            },
-            {
-              path: "swap",
-              lazy: async () => ({
-                Component: (await import("app/pages/forms/swap")).default,
-              }),
-            },
-            {
-              path: "textarea",
-              lazy: async () => ({
-                Component: (await import("app/pages/forms/textarea")).default,
-              }),
-            },
-            {
-              path: "select",
-              lazy: async () => ({
-                Component: (await import("app/pages/forms/select")).default,
-              }),
-            },
-            {
-              path: "range",
-              lazy: async () => ({
-                Component: (await import("app/pages/forms/range")).default,
-              }),
-            },
-            {
-              path: "listbox",
-              lazy: async () => ({
-                Component: (await import("app/pages/forms/listbox")).default,
-              }),
-            },
-            {
-              path: "autocomplete",
-              lazy: async () => ({
-                Component: (await import("app/pages/forms/autocomplete"))
-                  .default,
-              }),
-            },
-            {
-              path: "file-upload",
-              lazy: async () => ({
-                Component: (await import("app/pages/forms/file-upload"))
-                  .default,
-              }),
-            },
-            {
-              path: "form-validation",
-              lazy: async () => ({
-                Component: (await import("app/pages/forms/form-validation"))
-                  .default,
-              }),
-            },
-            {
-              path: "text-editor",
-              lazy: async () => ({
-                Component: (await import("app/pages/forms/text-editor"))
-                  .default,
-              }),
-            },
-            {
-              path: "filepond",
-              lazy: async () => ({
-                Component: (await import("app/pages/forms/filepond")).default,
-              }),
-            },
-            {
-              path: "datepicker",
-              lazy: async () => ({
-                Component: (await import("app/pages/forms/datepicker")).default,
-              }),
-            },
-          ],
-        },
-        {
           path: "/tables",
           children: [
             {
@@ -548,75 +412,7 @@ const protectedRoutes = {
                 },
               ],
             },
-            {
-              path: "blog-card",
-              children: [
-                {
-                  path: "blog-card-1",
-                  lazy: async () => ({
-                    Component: (
-                      await import("app/pages/prototypes/blog-card-1")
-                    ).default,
-                  }),
-                },
-                {
-                  path: "blog-card-2",
-                  lazy: async () => ({
-                    Component: (
-                      await import("app/pages/prototypes/blog-card-2")
-                    ).default,
-                  }),
-                },
-                {
-                  path: "blog-card-3",
-                  lazy: async () => ({
-                    Component: (
-                      await import("app/pages/prototypes/blog-card-3")
-                    ).default,
-                  }),
-                },
-                {
-                  path: "blog-card-4",
-                  lazy: async () => ({
-                    Component: (
-                      await import("app/pages/prototypes/blog-card-4")
-                    ).default,
-                  }),
-                },
-                {
-                  path: "blog-card-5",
-                  lazy: async () => ({
-                    Component: (
-                      await import("app/pages/prototypes/blog-card-5")
-                    ).default,
-                  }),
-                },
-                {
-                  path: "blog-card-6",
-                  lazy: async () => ({
-                    Component: (
-                      await import("app/pages/prototypes/blog-card-6")
-                    ).default,
-                  }),
-                },
-                {
-                  path: "blog-card-7",
-                  lazy: async () => ({
-                    Component: (
-                      await import("app/pages/prototypes/blog-card-7")
-                    ).default,
-                  }),
-                },
-                {
-                  path: "blog-card-8",
-                  lazy: async () => ({
-                    Component: (
-                      await import("app/pages/prototypes/blog-card-8")
-                    ).default,
-                  }),
-                },
-              ],
-            },
+
             {
               path: "post-details",
               lazy: async () => ({
@@ -726,7 +522,7 @@ const protectedRoutes = {
           children: [
             {
               index: true,
-              element: <RoleRedirect />, 
+              element: <RoleRedirect />,
             },
             {
               path: "sales",
@@ -876,6 +672,7 @@ const protectedRoutes = {
             },
           ],
         },
+
         {
           path: "apps",
           children: [
@@ -952,6 +749,248 @@ const protectedRoutes = {
               }),
             },
           ],
+        },
+      ],
+    },
+    {
+      path: "/forms",
+      children: [
+        {
+          index: true,
+          element: <Navigate to="/forms/input" />,
+        },
+        {
+          path: "ekyc-form",
+          lazy: async () => ({
+            Component: (await import("app/pages/forms/KYCForm")).default,
+          }),
+        },
+        {
+          path: "add-product-form",
+          lazy: async () => ({
+            Component: (await import("app/pages/forms/add-product-form"))
+              .default,
+          }),
+        },
+        {
+          path: "new-post-form",
+          lazy: async () => ({
+            Component: (await import("app/pages/forms/new-post-form"))
+              .default,
+          }),
+        },
+        {
+          path: "input",
+          lazy: async () => ({
+            Component: (await import("app/pages/forms/input")).default,
+          }),
+        },
+        {
+          path: "input-group",
+          lazy: async () => ({
+            Component: (await import("app/pages/forms/input-group"))
+              .default,
+          }),
+        },
+        {
+          path: "input-mask",
+          lazy: async () => ({
+            Component: (await import("app/pages/forms/input-mask")).default,
+          }),
+        },
+        {
+          path: "checkbox",
+          lazy: async () => ({
+            Component: (await import("app/pages/forms/checkbox")).default,
+          }),
+        },
+        {
+          path: "radio",
+          lazy: async () => ({
+            Component: (await import("app/pages/forms/radio")).default,
+          }),
+        },
+        {
+          path: "switch",
+          lazy: async () => ({
+            Component: (await import("app/pages/forms/switch")).default,
+          }),
+        },
+        {
+          path: "swap",
+          lazy: async () => ({
+            Component: (await import("app/pages/forms/swap")).default,
+          }),
+        },
+        {
+          path: "textarea",
+          lazy: async () => ({
+            Component: (await import("app/pages/forms/textarea")).default,
+          }),
+        },
+        {
+          path: "select",
+          lazy: async () => ({
+            Component: (await import("app/pages/forms/select")).default,
+          }),
+        },
+        {
+          path: "range",
+          lazy: async () => ({
+            Component: (await import("app/pages/forms/range")).default,
+          }),
+        },
+        {
+          path: "listbox",
+          lazy: async () => ({
+            Component: (await import("app/pages/forms/listbox")).default,
+          }),
+        },
+        {
+          path: "autocomplete",
+          lazy: async () => ({
+            Component: (await import("app/pages/forms/autocomplete"))
+              .default,
+          }),
+        },
+        {
+          path: "file-upload",
+          lazy: async () => ({
+            Component: (await import("app/pages/forms/file-upload"))
+              .default,
+          }),
+        },
+        {
+          path: "form-validation",
+          lazy: async () => ({
+            Component: (await import("app/pages/forms/form-validation"))
+              .default,
+          }),
+        },
+        {
+          path: "text-editor",
+          lazy: async () => ({
+            Component: (await import("app/pages/forms/text-editor"))
+              .default,
+          }),
+        },
+        {
+          path: "filepond",
+          lazy: async () => ({
+            Component: (await import("app/pages/forms/filepond")).default,
+          }),
+        },
+        {
+          path: "datepicker",
+          lazy: async () => ({
+            Component: (await import("app/pages/forms/datepicker")).default,
+          }),
+        },
+      ],
+    },
+    {
+      path: "blog-card",
+      children: [
+        {
+          path: "blog-card-1",
+          lazy: async () => ({
+            Component: (
+              await import("app/pages/prototypes/blog-card-1")
+            ).default,
+          }),
+        },
+        {
+          path: "blog-card-2",
+          lazy: async () => ({
+            Component: (
+              await import("app/pages/prototypes/blog-card-2")
+            ).default,
+          }),
+        },
+        {
+          path: "blog-card-3",
+          lazy: async () => ({
+            Component: (
+              await import("app/pages/prototypes/blog-card-3")
+            ).default,
+          }),
+        },
+        {
+          path: "blog-card-4",
+          lazy: async () => ({
+            Component: (
+              await import("app/pages/prototypes/blog-card-4")
+            ).default,
+          }),
+        },
+        {
+          path: "blog-card-5",
+          lazy: async () => ({
+            Component: (
+              await import("app/pages/prototypes/blog-card-5")
+            ).default,
+          }),
+        },
+        {
+          path: "blog-card-6",
+          lazy: async () => ({
+            Component: (
+              await import("app/pages/prototypes/blog-card-6")
+            ).default,
+          }),
+        },
+        {
+          path: "blog-card-7",
+          lazy: async () => ({
+            Component: (
+              await import("app/pages/prototypes/blog-card-7")
+            ).default,
+          }),
+        },
+        {
+          path: "blog-card-8",
+          lazy: async () => ({
+            Component: (
+              await import("app/pages/prototypes/blog-card-8")
+            ).default,
+          }),
+        },
+      ],
+    },
+    {
+      path: "administracion",
+      children: [
+        {
+          path: "entidades",
+          lazy: async () => ({
+            Component: (await import("app/pages/administracion/entidades")).default,
+          }),
+        },
+        {
+          path: "entidades/:id/anuncios",
+          lazy: async () => ({
+            Component: (await import("app/pages/administracion/anuncios")).default,
+          }),
+        },
+
+        {
+          path: "entidades/:id/anuncios/nuevo",  // 📌 crear anuncio
+          lazy: async () => ({
+            Component: (await import("app/pages/administracion/nuevo-anuncio")).default,
+          }),
+        },
+        {
+          path: "anuncios/:anuncioId", // 📌 detalle de anuncio sin entidadId
+          lazy: async () => ({
+            Component: (await import("app/pages/administracion/publicacion")).default,
+          }),
+        },
+
+        {
+          path: "nueva-entidad",
+          lazy: async () => ({
+            Component: (await import("app/pages/administracion/nueva-entidad")).default,
+          }),
         },
       ],
     },

@@ -7,15 +7,7 @@ import { Highlight } from "components/shared/Highlight";
 import { Button, Card } from "components/ui";
 
 // ----------------------------------------------------------------------
-
-export function PostCard({
-  created_at,
-  cover,
-  title,
-  category,
-  CategoryIcon,
-  query,
-}) {
+export function PostCard({ created_at, cover, title, category, CategoryIcon, query }) {
   return (
     <Card className="flex grow flex-col">
       <img
@@ -26,10 +18,7 @@ export function PostCard({
       <div className="absolute inset-0 flex h-full w-full flex-col justify-end">
         <div className="rounded-lg bg-linear-to-t from-[#19213299] via-[#19213266] to-transparent px-4 pb-3 pt-12">
           <div className="line-clamp-2">
-            <a
-              href="##"
-              className="text-base font-medium text-white hover:text-white/80"
-            >
+            <a href="##" className="text-base font-medium text-white hover:text-white/80">
               <Highlight query={query}>{title}</Highlight>
             </a>
           </div>

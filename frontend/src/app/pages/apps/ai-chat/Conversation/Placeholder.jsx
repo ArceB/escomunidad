@@ -44,10 +44,10 @@ export function Placeholder() {
           }}
           className="block animate-shimmer bg-linear-to-r from-violet-400 via-red-400 to-fuchsia-400 bg-clip-text font-semibold text-transparent"
         >
-          Welcome, John Doe
+          ¡Bienvenido!
         </span>
         <span className="block text-gray-400 dark:text-dark-300">
-          May I be of assistance today?
+          ¿Con qué te puedo ayudar?
         </span>
       </div>
       <div className="flex w-full shrink-0 gap-4 px-4 pt-16 max-lg:overflow-x-auto lg:grid lg:grid-cols-4">

@@ -44,7 +44,9 @@ export function Footer() {
 
   useEffect(() => {
     reset();
-    setTimeout(() => setFocus("content"));
+    if (currentChat?.id) {
+      setTimeout(() => setFocus("content"));
+    }
   }, [currentChat?.id, reset, setFocus]);
 
   const watchInput = watch("content");

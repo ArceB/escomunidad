@@ -13,29 +13,56 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class EntidadSerializer(serializers.ModelSerializer):
+    foto_portada = serializers.ImageField(use_url=True)
+
+    responsable_id = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.filter(role="responsable"),
+        source="responsable",
+        write_only=True,
+        required=False,
+        allow_null=True
+    )
+    responsable = UserSerializer(read_only=True)
+
+    usuarios_ids = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.filter(role="usuario"),
+        source="usuarios",
+        many=True,
+        write_only=True,
+        required=False
+    )
+    usuarios = UserSerializer(many=True, read_only=True)
+
     class Meta:
         model = Entidad
-        fields = ["id", "nombre", "contacto", "correo"]
+        fields = [
+            "id", "nombre", "correo", "telefono", "foto_portada",
+            "responsable", "responsable_id",
+            "usuarios", "usuarios_ids",
+        ]
+
+    def create(self, validated_data):
+        usuarios = validated_data.pop("usuarios", [])
+        entidad = Entidad.objects.create(**validated_data)
+        if usuarios:
+            entidad.usuarios.set(usuarios)
+        return entidad
+
+    def update(self, instance, validated_data):
+        usuarios = validated_data.pop("usuarios", None)
+        instance = super().update(instance, validated_data)
+        if usuarios is not None:
+            instance.usuarios.set(usuarios)
+        return instance
+
 
 
 class AnuncioSerializer(serializers.ModelSerializer):
-    usuario = UserSerializer(read_only=True)
-    usuario_id = serializers.PrimaryKeyRelatedField(
-        queryset=User.objects.all(), source="usuario", write_only=True, required=False
-    )
-    entidad = EntidadSerializer(read_only=True)
-    entidad_id = serializers.PrimaryKeyRelatedField(
-        queryset=Entidad.objects.all(), source="entidad", write_only=True
-    )
-
     class Meta:
         model = Anuncio
-        fields = [
-            "id", "titulo", "descripcion", "fecha_publicacion",
-            "fecha_inicio", "fecha_fin", "banner",
-            "usuario", "usuario_id", "entidad", "entidad_id",
-        ]
-        read_only_fields = ["fecha_publicacion"]
+        fields = "__all__"
+        read_only_fields = ["usuario"]  # el usuario lo pone perform_create
+
 
 
 class NotificacionSerializer(serializers.ModelSerializer):

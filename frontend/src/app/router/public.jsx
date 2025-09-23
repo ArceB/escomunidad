@@ -2,6 +2,19 @@ const publicRoutes = {
   id: "public",
   children: [
     {
+      path: "principal",
+      lazy: async () => ({
+        Component: (await import("app/pages/dashboards/principal"))
+          .default,
+      }),
+    },
+    {
+      path: "login",
+      lazy: async () => ({
+        Component: (await import("app/pages/Auth")).default,
+      }),
+    },
+    {
       path: "prototypes",
       children: [
         {
