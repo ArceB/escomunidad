@@ -17,7 +17,7 @@ from langchain_core.messages import HumanMessage, AIMessage
 # =========================
 # Configuración de OpenRouter
 # =========================
-os.environ["OPENAI_API_KEY"] = "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"  
+os.environ["OPENAI_API_KEY"] = "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"  
 os.environ["OPENAI_API_BASE"] = "https://openrouter.ai/api/v1"
 
 # =========================
@@ -55,7 +55,7 @@ class ChatBot:
         try:
             print("⚙️ Inicializando modelo LLM en OpenRouter...")
             self.modelo = ChatOpenAI(
-                model="meta-llama/llama-3.1-405b-instruct:free",
+                model="meta-llama/llama-4-scout:free",
                 temperature=0.1,
                 openai_api_key=os.environ["OPENAI_API_KEY"],
                 openai_api_base=os.environ["OPENAI_API_BASE"],
