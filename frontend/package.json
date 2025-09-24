@@ -34,6 +34,7 @@
     "filepond": "^4.32.7",
     "filepond-plugin-image-preview": "^4.6.12",
     "flatpickr": "^4.6.13",
+    "framer-motion": "^12.23.19",
     "fuse.js": "^7.1.0",
     "globals": "^16.0.0",
     "html-react-parser": "^5.2.2",

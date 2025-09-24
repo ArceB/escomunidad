@@ -7,38 +7,27 @@ import { isDeltaNotEmpty } from 'utils/quillUtils'
 // ----------------------------------------------------------------------
 
 export const schema = Yup.object().shape({
-    title: Yup.string()
-        .trim()
-        .min(2, 'Blog Title Too Short!')
-        .max(50, 'Blog Title Too Long!')
-        .required('Blog Title Required'),
-    // .matches(/^[A-Z0-9]+$/, 'Invalid Blog Title'),
-    caption: Yup.string()
-        .trim()
-        .min(2, 'Blog Caption Too Short!')
-        .max(50, 'Blog Caption Too Long!')
-        .required('Blog Caption Required'),
-    content: Yup.object()
-        .required('Blog Description Required')
-        .test("notEmpty", "Content Can't be empty", isDeltaNotEmpty),
-    cover: Yup.mixed().nullable()
-        .required("You need to provide a file")
-        .test("fileSize", "Max file size should be 4MB", value => value && value.size <= 4194304),
-    author_id: Yup.string()
-        .required('Please Select Author'),
-    category_id: Yup.string()
-        .required('Please Select Author'),
-    tags: Yup.array().of(Yup.string().nullable()).max(10),
-    publish_date: Yup.date()
-        .required('Publish Date Required'),
-    meta: Yup.object().shape({
-        title: Yup.string()
-            .trim()
-            .max(60, 'Meta Title Too Long!'),
-        description: Yup.string()
-            .trim()
-            .max(160, 'Meta Description Too Long!'),
-        keywords: Yup.array().of(Yup.string()).min(0).max(10).required('Meta Keywords Required'),
-    }),
+  titulo: Yup.string()
+    .trim()
+    .min(2, "El título es muy corto")
+    .max(200, "El título es muy largo")
+    .required("Título requerido"),
+  frase: Yup.string()
+    .trim()
+    .min(2, "La frase es muy corta")
+    .max(255, "La frase es muy larga")
+    .required("Frase requerida"),
+  descripcion: Yup.object()
+    .required("Descripción requerida")
+    .test("notEmpty", "La descripción no puede estar vacía", isDeltaNotEmpty),
+  banner: Yup.mixed().nullable()
+    .required("Debes subir una imagen"),
+  archivo_pdf: Yup.mixed()
+    .nullable()
+    .test("fileType", "Solo se permiten archivos PDF", (value) =>
+      value ? value.type === "application/pdf" : true
+    ),
+  fecha_inicio: Yup.date().nullable(),
+  fecha_fin: Yup.date().nullable(),
+});
 
-})

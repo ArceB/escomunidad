@@ -32,8 +32,8 @@ class UserAdmin(BaseUserAdmin):
 # ======================================================
 @admin.register(Entidad)
 class EntidadAdmin(admin.ModelAdmin):
-    list_display = ("id", "nombre", "contacto", "correo")
-    search_fields = ("nombre", "contacto", "correo")
+    list_display = ("id", "nombre", "correo", "telefono")
+    search_fields = ("nombre", "correo", "telefono")
 
 
 # ======================================================
@@ -41,12 +41,11 @@ class EntidadAdmin(admin.ModelAdmin):
 # ======================================================
 @admin.register(Anuncio)
 class AnuncioAdmin(admin.ModelAdmin):
-    list_display = ("id", "titulo", "usuario", "entidad", "fecha_publicacion", "fecha_inicio", "fecha_fin")
-    list_filter = ("entidad", "fecha_publicacion")
+    list_display = ("id", "titulo", "usuario", "entidad", "created_at", "fecha_inicio", "fecha_fin")
+    list_filter = ("entidad", "created_at")
     search_fields = ("titulo", "descripcion")
-    date_hierarchy = "fecha_publicacion"
-
-
+    date_hierarchy = "created_at"
+    
 # ======================================================
 # Notificaciones
 # ======================================================

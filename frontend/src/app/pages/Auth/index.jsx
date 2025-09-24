@@ -1,5 +1,4 @@
 // Import Dependencies
-import { useNavigate } from "react-router";
 import { EnvelopeIcon, LockClosedIcon } from "@heroicons/react/24/outline";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useForm } from "react-hook-form";
@@ -14,7 +13,6 @@ import { Page } from "components/shared/Page";
 // ----------------------------------------------------------------------
 
 export default function SignIn() {
-  const navigate = useNavigate();
   const { login, errorMessage } = useAuthContext();
 
   const {
@@ -31,19 +29,12 @@ export default function SignIn() {
 
   const onSubmit = async (data) => {
     try {
-      const role = await login({
+      await login({
         username: data.username,
         password: data.password,
       });
-
-      // 👇 Depuración: ver qué rol devuelve el backend
-      console.log("ROL desde backend:", role);
-
-      if (role === "usuario") navigate("/dashboards/crm-analytics");
-      else if (role === "responsable") navigate("/dashboards/education");
-      else if (role === "admin") navigate("/dashboards/doctor");
-      else if (role === "superadmin") navigate("/dashboards/personal");
-      else navigate("/dashboards/sales"); // fallback
+      // 👇 Ya no usamos navigate aquí
+      // GhostGuard se encarga de redirigir según rol
     } catch {
       /* el error ya lo maneja el contexto */
     }
@@ -104,7 +95,7 @@ export default function SignIn() {
               </div>
 
               <Button type="submit" className="mt-5 w-full" color="primary">
-                Sign In
+                Iniciar Sesión
               </Button>
             </form>
           </Card>

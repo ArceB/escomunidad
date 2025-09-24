@@ -1,4 +1,5 @@
 // Import Dependencies
+import { useNavigate, useParams } from "react-router";
 import PropTypes from "prop-types";
 import { Fragment, useRef, useState } from "react";
 import {
@@ -9,7 +10,6 @@ import {
   Transition,
 } from "@headlessui/react";
 import {
-  ArrowDownTrayIcon,
   ChevronDownIcon,
   Cog8ToothIcon,
   MagnifyingGlassIcon,
@@ -23,13 +23,13 @@ import clsx from "clsx";
 import { Button, Input } from "components/ui";
 import { useBreakpointsContext } from "app/contexts/breakpoint/context";
 import { useIsomorphicEffect } from "hooks";
+import { useAuthContext } from "app/contexts/auth/context";
 
 // ----------------------------------------------------------------------
 
 export function Toolbar({ query, setQuery }) {
   const [showMobileSearch, setShowMobileSearch] = useState(false);
   const mobileSearchRef = useRef();
-
   const { isXs } = useBreakpointsContext();
 
   useIsomorphicEffect(() => {
@@ -46,7 +46,7 @@ export function Toolbar({ query, setQuery }) {
           }}
           value={query || ""}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search Posts ..."
+          placeholder="Buscar Anuncio ..."
           ref={mobileSearchRef}
           prefix={<MagnifyingGlassIcon className="size-4.5" />}
           suffix={
@@ -66,7 +66,7 @@ export function Toolbar({ query, setQuery }) {
         <>
           <div className="flex min-w-0 items-center space-x-1 ">
             <h2 className="truncate text-xl font-medium text-gray-700 dark:text-dark-50 lg:text-2xl">
-              Blog Cards
+              Anuncios
             </h2>
             <ActionMenu />
           </div>
@@ -78,8 +78,7 @@ export function Toolbar({ query, setQuery }) {
               }}
               value={query || ""}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search Posts ..."
-              className=""
+              placeholder="Buscar Anuncios ..."
               prefix={<MagnifyingGlassIcon className="size-4.5" />}
             />
             <Button
@@ -113,6 +112,13 @@ export function Toolbar({ query, setQuery }) {
 }
 
 function ActionMenu() {
+  const navigate = useNavigate();
+  const { id: entidadId } = useParams();
+  const { role } = useAuthContext(); // 👈 Obtenemos el rol del usuario
+
+  const puedeCrear =
+    role === "usuario" || role === "admin" || role === "superadmin";
+
   return (
     <Menu as="div" className="relative inline-block text-left">
       <MenuButton
@@ -132,45 +138,37 @@ function ActionMenu() {
         leaveTo="opacity-0 translate-y-2"
       >
         <MenuItems className="absolute z-100 mt-1.5 min-w-[10rem] whitespace-nowrap rounded-lg border border-gray-300 bg-white py-1 shadow-lg shadow-gray-200/50 outline-hidden focus-visible:outline-hidden dark:border-dark-500 dark:bg-dark-700 dark:shadow-none ltr:right-0 rtl:left-0">
+          {puedeCrear && ( // 👈 Mostrar solo si el rol puede crear
+            <MenuItem>
+              {({ focus }) => (
+                <button
+                  onClick={() =>
+                    navigate(`/administracion/entidades/${entidadId}/anuncios/nuevo`)
+                  }
+                  className={clsx(
+                    "flex h-9 w-full items-center space-x-2 px-3 tracking-wide outline-hidden transition-colors ",
+                    focus &&
+                      "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100"
+                  )}
+                >
+                  <PlusIcon className="size-4.5 stroke-2" />
+                  <span>Nuevo Anuncio</span>
+                </button>
+              )}
+            </MenuItem>
+          )}
+
           <MenuItem>
             {({ focus }) => (
               <button
                 className={clsx(
                   "flex h-9 w-full items-center space-x-2 px-3 tracking-wide outline-hidden transition-colors ",
                   focus &&
-                    "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
-                )}
-              >
-                <PlusIcon className="size-4.5 stroke-2" />
-                <span>New Post</span>
-              </button>
-            )}
-          </MenuItem>
-          <MenuItem>
-            {({ focus }) => (
-              <button
-                className={clsx(
-                  "flex h-9 w-full items-center space-x-2 px-3 tracking-wide outline-hidden transition-colors ",
-                  focus &&
-                    "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
-                )}
-              >
-                <ArrowDownTrayIcon className="size-4.5 stroke-2" />
-                <span>Export Posts</span>
-              </button>
-            )}
-          </MenuItem>
-          <MenuItem>
-            {({ focus }) => (
-              <button
-                className={clsx(
-                  "flex h-9 w-full items-center space-x-2 px-3 tracking-wide outline-hidden transition-colors ",
-                  focus &&
-                    "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
+                    "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100"
                 )}
               >
                 <Cog8ToothIcon className="size-4.5 stroke-2" />
-                <span>Settings</span>
+                <span>Ajustes</span>
               </button>
             )}
           </MenuItem>

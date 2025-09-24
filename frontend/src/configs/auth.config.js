@@ -2,5 +2,6 @@
  * This is simple JWT API for testing purposes.
  * https://github.com/pinia-studio/jwt-api-node
 **/
+// configs/auth.config.js
+export const JWT_HOST_API = "http://localhost:8000/api";
 
-export const JWT_HOST_API = "https://jwt-api-node.vercel.app";
