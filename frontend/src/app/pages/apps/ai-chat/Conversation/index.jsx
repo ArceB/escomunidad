@@ -8,7 +8,6 @@ export function Conversation() {
   const { currentChat, isLoading } = useChatContext();
   const panelRef = useRef(null);
   const contentRef = useRef(null);
-  const bottomRef = useRef(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
 
   // Detecta si el usuario está al fondo (tolerancia 50px)
@@ -19,10 +18,14 @@ export function Conversation() {
     setIsAtBottom(atBottom);
   };
 
+  // Scroll solo dentro del contenedor del chat
   const scrollToBottom = (smooth = true) => {
     const el = panelRef.current;
-    if (!el || !bottomRef.current) return;
-    bottomRef.current.scrollIntoView({ behavior: smooth ? "smooth" : "auto", block: "end" });
+    if (!el) return;
+    el.scrollTo({
+      top: el.scrollHeight,
+      behavior: smooth ? "smooth" : "auto",
+    });
   };
 
   // Listener de scroll del usuario
@@ -37,14 +40,15 @@ export function Conversation() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentChat?.messages?.length, isLoading]);
 
-  // Autoscroll cuando cambia de chat
+  // Autoscroll cuando cambia de chat (solo si ya hay mensajes)
   useEffect(() => {
-    // al abrir un chat, baja sin animación
-    scrollToBottom(false);
+    if (currentChat?.messages && currentChat.messages.length > 0) {
+      scrollToBottom(false);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentChat?.id]);
 
-  // Reaccionar a resize de ventana (teclado móvil, cambios de viewport)
+  // Reaccionar a resize de ventana
   useEffect(() => {
     const onResize = () => {
       if (isAtBottom) scrollToBottom(false);
@@ -54,7 +58,7 @@ export function Conversation() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAtBottom]);
 
-  // Reaccionar a cambios de tamaño del contenido (por ejemplo, llega texto, cambia layout)
+  // Reaccionar a cambios de tamaño del contenido
   useEffect(() => {
     if (!contentRef.current) return;
     const ro = new ResizeObserver(() => {
@@ -70,6 +74,7 @@ export function Conversation() {
     return (
       <ScrollShadow
         data-conversation-panel
+        ref={panelRef}
         className="mx-auto flex h-full w-full max-w-4xl flex-col overflow-y-auto"
       >
         <Placeholder />
@@ -88,8 +93,6 @@ export function Conversation() {
         {currentChat.messages.map((message) => (
           <Message key={message.id} role={message.role} content={message.content} />
         ))}
-        {/* ancla inferior */}
-        <div ref={bottomRef} />
       </div>
     </ScrollShadow>
   );

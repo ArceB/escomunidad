@@ -51,7 +51,7 @@ export function Placeholder() {
   };
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl grow flex-col overflow-y-auto pb-3 pt-[clamp(2.5rem,10vh,20vh)]">
+    <div className="mx-auto flex w-full max-w-4xl grow flex-col justify-center pb-3 pt-10">
       <div className="px-4 text-[clamp(2.2rem,3.75vw,3.75rem)] font-medium leading-[1.1] tracking-tight">
         <span
           style={{

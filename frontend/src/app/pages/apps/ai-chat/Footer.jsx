@@ -22,8 +22,12 @@ export function Footer() {
   const watchInput = watch("content");
 
   useEffect(() => {
-    setTimeout(() => setFocus("content"));
-  }, [currentChat?.id, setFocus]);
+    reset();
+    if (currentChat?.id) {
+      setTimeout(() => setFocus("content"));
+    }
+  }, [currentChat?.id, reset, setFocus]);
+
 
   const onSubmit = async (formData) => {
     console.log("✅ onSubmit disparado con:", formData);
@@ -87,11 +91,10 @@ export function Footer() {
           type="submit"
           isIcon
           disabled={!watchInput || isLoading}
-          className={`size-9 rounded-full transition-colors ${
-            !watchInput || isLoading
+          className={`size-9 rounded-full transition-colors ${!watchInput || isLoading
               ? "bg-gray-300 text-gray-500 cursor-not-allowed"
               : "bg-blue-500 text-white hover:bg-blue-600"
-          }`}
+            }`}
         >
           {isLoading ? (
             <svg
