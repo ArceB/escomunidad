@@ -1,3 +1,15 @@
-# Ignorar archivos compilados de Python
-*.pyc
+# Ignorar los archivos .pyc
 __pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignorar el entorno virtual si lo tienes
+venv/
+.env/
+
+# Ignorar archivos de configuración de editor
+.vscode/
+.idea/
+
+# Otros archivos específicos de tu proyecto...
