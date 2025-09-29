@@ -1,7 +1,8 @@
 import os
 import time
+import requests
 from threading import Thread
-from openai import RateLimitError
+from openai import RateLimitError  # Ya no se usará, pero si lo necesitas puedes mantenerlo
 
 from .text_processor import chunk_pdfs
 from .chroma_db import save_to_chroma_db, CHROMA_PATH
@@ -9,16 +10,15 @@ from langchain_chroma import Chroma
 
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_openai import ChatOpenAI
 from langchain_core.chat_history import InMemoryChatMessageHistory
 from langchain_core.messages import HumanMessage, AIMessage
 
 
 # =========================
-# Configuración de OpenRouter
+# Configuración de LM Studio
 # =========================
-os.environ["OPENAI_API_KEY"] = "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"  
-os.environ["OPENAI_API_BASE"] = "https://openrouter.ai/api/v1"
+LM_STUDIO_URL = "https://undeficient-magen-overaggressively.ngrok-free.dev/v1/chat/completions"  # Endpoint corregido
+MODEL_NAME = "meta-llama-3.1-8b-instruct"  # Nombre del modelo que proporcionó LM Studio
 
 # =========================
 # Carpeta de PDFs
@@ -48,22 +48,6 @@ class ChatBot:
         # Historial
         # =========================
         self.historial = InMemoryChatMessageHistory()
-
-        # =========================
-        # Modelo LLM (OpenRouter)
-        # =========================
-        try:
-            print("⚙️ Inicializando modelo LLM en OpenRouter...")
-            self.modelo = ChatOpenAI(
-                model="meta-llama/llama-3.1-405b-instruct:free",
-                temperature=0.1,
-                openai_api_key=os.environ["OPENAI_API_KEY"],
-                openai_api_base=os.environ["OPENAI_API_BASE"],
-            )
-            print("✅ Modelo LLM listo")
-        except Exception as e:
-            print("💥 Error inicializando modelo LLM:", e)
-            self.modelo = None
 
         # =========================
         # BD Chroma persistente
@@ -143,6 +127,7 @@ class ChatBot:
     def ask(self, pregunta: str) -> str:
         print("🤔 Iniciando ask() con la pregunta:", pregunta)
         try:
+            # Recuperamos los documentos relevantes
             documentos_relacionados = self.db.similarity_search_with_score(pregunta, k=5)
             contexto = "\n\n---\n\n".join([doc.page_content for doc, _ in documentos_relacionados])
             print(f"📚 Documentos recuperados: {len(documentos_relacionados)}")
@@ -155,48 +140,53 @@ class ChatBot:
             for m in self.historial.messages
         )
 
-        PLANTILLA_PROMPT = """
-Eres un asistente llamado PoliChat experto en responder preguntas basadas en documentos proporcionados.
+        # Ajustamos el prompt para respuestas más concisas
+        prompt = f"""
+        Eres un asistente llamado PoliChat experto en responder preguntas basadas en documentos proporcionados.
 
-🔹 Instrucciones:
-- Da respuestas **claras y concisas** (máx. 1-2 frases).
-- Si corresponde, usa **listas o viñetas** para estructurar la información.
-- No inventes datos que no estén en el contexto.
-- Mantén un tono natural y conversacional.
+        🔹 Instrucciones:
+        - Da respuestas **claras y concisas** (máx. 2-3 frases).
+        - No incluyas demasiados detalles, mantén la respuesta breve y directa.
+        - Si es necesario, usa viñetas o listas para estructurar la respuesta.
 
-📂 Contexto disponible:
-{context}
+        📂 Contexto disponible:
+        {contexto}
 
-💬 Historial de conversación previa:
-{chat_history}
+        💬 Historial de conversación previa:
+        {historial_texto}
 
-❓ Pregunta actual:
-{question}
+        ❓ Pregunta actual:
+        {pregunta}
 
-✍️ Respuesta:
-"""
-        try:
-            prompt_template = ChatPromptTemplate.from_template(PLANTILLA_PROMPT)
-            prompt = prompt_template.format(
-                context=contexto,
-                chat_history=historial_texto,
-                question=pregunta
-            )
-            print("📝 Prompt generado (primeros 300 chars):", prompt[:300])
-        except Exception as e:
-            print("💥 Error generando prompt:", e)
-            return "⚠ Error generando prompt"
+        ✍️ Respuesta:
+        """
+        
+        print("📝 Prompt generado:", prompt[:300])  # Imprime solo los primeros 300 caracteres
 
-        # Llamada con reintento
+        # Verifica que el prompt no esté vacío
+        if not prompt.strip():
+            return "⚠ Error: el prompt está vacío"
+
+        # Llamada con reintento a LM Studio
         while True:
             try:
-                print("⚡ Llamando al modelo en OpenRouter...")
-                respuesta = self.modelo.invoke([HumanMessage(content=prompt)])
-                print("✅ Respuesta recibida del modelo:", respuesta)
-                break
-            except RateLimitError:
-                print("⏳ Rate limit, reintentando en 60s...")
-                time.sleep(60)
+                print(f"⚡ Llamando al modelo en LM Studio... (URL: {LM_STUDIO_URL})")
+
+                # Realizar la llamada al modelo
+                response = requests.post(
+                    LM_STUDIO_URL,
+                    json={"model": MODEL_NAME, "messages": [{"role": "user", "content": prompt}]},
+                )
+
+                if response.status_code == 200:
+                    respuesta = response.json().get("choices", [{}])[0].get("message", {}).get("content", "")
+                    if not respuesta:
+                        print("⚠ El modelo no generó respuesta. Revisando el prompt...")
+                    print("✅ Respuesta recibida del modelo:", respuesta)
+                    break
+                else:
+                    print(f"💥 Error en la llamada al modelo: {response.status_code}, {response.text}")
+                    return "⚠ Error llamando al modelo"
             except Exception as e:
                 print("💥 Error llamando al modelo:", e)
                 return "⚠ Error llamando al modelo"
@@ -204,8 +194,8 @@ Eres un asistente llamado PoliChat experto en responder preguntas basadas en doc
         # Guardar en historial
         try:
             self.historial.add_message(HumanMessage(content=pregunta))
-            self.historial.add_message(AIMessage(content=respuesta.content))
+            self.historial.add_message(AIMessage(content=respuesta))
         except Exception as e:
             print("⚠ Error guardando en historial:", e)
 
-        return respuesta.content.strip()
+        return respuesta.strip()
