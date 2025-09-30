@@ -58,7 +58,7 @@ export function Placeholder() {
             animationDuration: "5s",
             backgroundSize: "200% 100%",
           }}
-          className="block animate-shimmer bg-linear-to-r from-violet-400 via-red-400 to-fuchsia-400 bg-clip-text font-semibold text-transparent"
+          className="block animate-shimmer bg-linear-to-r from-blue-900 via-blue-400 to-rose-950 bg-clip-text font-semibold text-transparent"
         >
           ¡Bienvenido!
 

@@ -18,14 +18,11 @@ export default function PublicacionPage() {
   useEffect(() => {
     const fetchAnuncio = async () => {
       try {
-        const token = sessionStorage.getItem("authToken"); // 👈 aquí se define token
+        const token = sessionStorage.getItem("authToken"); 
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
         const res = await axios.get(
           `http://localhost:8000/api/anuncios/${anuncioId}/`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
+          { headers }
         );
         setAnuncio(res.data);
       } catch (err) {

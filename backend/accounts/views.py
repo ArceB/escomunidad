@@ -1,9 +1,12 @@
-from rest_framework import viewsets, mixins, serializers
+from rest_framework import viewsets, mixins, serializers, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework_simplejwt.views import TokenViewBase, TokenRefreshView
+from rest_framework.exceptions import PermissionDenied
 from datetime import date
+from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import RefreshToken
 
 
 from .models import Anuncio, Entidad
@@ -63,8 +66,13 @@ class EntidadViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_permissions(self):
+        # Lectura pública: list y retrieve
+        if self.action in ["list", "retrieve"]:
+            return [AllowAny()]
+        # Creación/edición/borrado sigue restringida
         user = self.request.user
-
+        if not user.is_authenticated:
+            return [ReadOnly()]
         if user.role == "superadmin":
             return [IsAuthenticated()]  # full acceso
         if user.role == "admin":
@@ -78,16 +86,25 @@ class EntidadViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
 
+        if not user.is_authenticated:
+            return Entidad.objects.all().order_by("id")
+
         if user.role == "superadmin":
             return Entidad.objects.all().order_by("id")
         if user.role == "admin":
             return Entidad.objects.filter(gestores__administrador=user).order_by("id")
         if user.role == "responsable":
-            return Entidad.objects.filter(responsables__responsable=user).order_by("id")
+            return Entidad.objects.filter(responsable=user).order_by("id")
         if user.role == "usuario":
             return user.entidades_usuario.all().order_by("id")
 
         return Entidad.objects.none()
+    
+    def perform_create(self, serializer):
+        user = self.request.user
+        if user.role not in ["admin", "superadmin"]:
+            raise PermissionDenied("No tienes permiso para crear entidades.")
+        serializer.save()
 
 class AnuncioViewSet(viewsets.ModelViewSet):
     serializer_class = AnuncioSerializer
@@ -114,12 +131,19 @@ class AnuncioViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        entidad_id = self.request.query_params.get("entidad")
+        entidad_id = self.request.GET.get("entidad_id")
+        anuncio_id = self.kwargs.get('anuncio_id')
 
-        # 👇 Si es anónimo, no intentar leer user.role
+        print(f"Filtrando anuncios por entidad_id: {entidad_id}, anuncio_id: {anuncio_id}")
+
+        # Si no hay usuario autenticado, solo mostramos anuncios públicos
         if not user.is_authenticated:
-            return Anuncio.objects.none()
+            qs = Anuncio.objects.exclude(banner="").exclude(banner=None)
+            if entidad_id:
+                qs = qs.filter(entidad_id=entidad_id)
+            return qs
 
+        # Filtrado según el rol del usuario
         if user.role == "superadmin":
             qs = Anuncio.objects.all()
         elif user.role == "admin":
@@ -127,12 +151,17 @@ class AnuncioViewSet(viewsets.ModelViewSet):
         elif user.role == "usuario":
             qs = Anuncio.objects.filter(entidad__in=user.entidades_usuario.all())
         elif user.role == "responsable":
-            qs = Anuncio.objects.filter(entidad__responsables__responsable=user)
+            qs = Anuncio.objects.filter(entidad__responsable=user)
         else:
             qs = Anuncio.objects.none()
 
+        # Filtrar por entidad_id si está presente
         if entidad_id:
             qs = qs.filter(entidad_id=entidad_id)
+
+        # Si tenemos un anuncio_id (detalles de un anuncio), filtramos por ese ID
+        if anuncio_id:
+            qs = qs.filter(id=anuncio_id)
 
         return qs
 
@@ -169,9 +198,13 @@ class AnuncioViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["get"], permission_classes=[AllowAny])
     def public(self, request):
         """Endpoint público para mostrar banners"""
-        anuncios = Anuncio.objects.exclude(banner="").exclude(banner=None)
-        serializer = self.get_serializer(anuncios, many=True)
+        entidad_id = request.query_params.get("entidad_id")
+        qs = Anuncio.objects.exclude(banner="").exclude(banner=None)
+        if entidad_id:
+            qs = qs.filter(entidad_id=entidad_id)
+        serializer = self.get_serializer(qs, many=True)
         return Response(serializer.data)
+
 
 
 class NotificacionViewSet(viewsets.ModelViewSet):
@@ -209,3 +242,19 @@ class ResponsableEntidadViewSet(viewsets.ModelViewSet):
     queryset = ResponsableEntidad.objects.select_related("entidad", "responsable").order_by("id")
     serializer_class = ResponsableEntidadSerializer
     permission_classes = [IsAuthenticated, IsAdmin | IsSuperAdmin]
+
+class LogoutView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        try:
+            # Invalidar refresh token si se envía
+            refresh_token = request.data.get("refresh")
+            if refresh_token:
+                token = RefreshToken(refresh_token)
+                token.blacklist()
+            # Limpiar sesión (si usas session auth)
+            request.session.flush()
+            return Response({"detail": "Logout exitoso"}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)

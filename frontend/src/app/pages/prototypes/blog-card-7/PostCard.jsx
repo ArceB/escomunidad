@@ -1,6 +1,6 @@
 // Import Dependencies
 import PropTypes from "prop-types";
-import { HeartIcon } from "@heroicons/react/24/outline";
+import { EditIcon, TrashIcon } from 'lucide-react';
 
 // Local Imports
 import { Highlight } from "components/shared/Highlight";
@@ -14,7 +14,6 @@ export function PostCard({
   created_at,
   title,
   description,
-  likes,
   query,
 }) {
   return (
@@ -47,9 +46,23 @@ export function PostCard({
         </div>
         <p className="grow pt-2">{description}</p>
         <div className="mt-3 text-end">
-          <Button className="h-8 space-x-1.5 rounded-full px-4 ">
-            <HeartIcon className="size-4.5" />
-            <span>{likes}</span>
+          <Button
+            data-tooltip
+            data-tooltip-content="Editar"
+            unstyled
+            className="size-7 rounded-full hover:bg-white/20"
+            onClick={() => console.log("Editar")}
+          >
+            <EditIcon className="size-4.5 stroke-2 stroke-blue-800" />
+          </Button>
+          <Button
+            data-tooltip
+            data-tooltip-content="Eliminar"
+            unstyled
+            className="size-7 rounded-full hover:bg-white/20"
+            onClick={() => console.log("Eliminar")}
+          >
+            <TrashIcon className="size-4.5 stroke-2 stroke-blue-800" />
           </Button>
         </div>
       </div>

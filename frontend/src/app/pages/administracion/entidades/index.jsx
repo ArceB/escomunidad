@@ -27,10 +27,10 @@ export default function EntidadesPage() {
   return (
     <Page title="Entidades">
       <NavBar showNotifications />
-      <main className="pt-20 px-6">
+      <main className="pt-20 px-6">        
         <BlogCard5
           data={entidades}
-          onCardClick={(entidad) => navigate(`/administracion/entidades/${entidad.id}/anuncios`)} 
+          onCardClick={(entidad) => navigate(`/administracion/entidades/${entidad.id}/anuncios`)}
         />
       </main>
     </Page>

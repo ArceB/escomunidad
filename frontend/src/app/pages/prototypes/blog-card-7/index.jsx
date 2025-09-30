@@ -11,20 +11,22 @@ import { useFuse } from "hooks";
 // ----------------------------------------------------------------------
 
 export default function BlogCard7({ onCardClick }) {
-  const { id: entidadId } = useParams(); // 👈 el parámetro de la ruta
+  const { id: entidadId } = useParams(); 
   const [posts, setPosts] = useState([]);
 
   useEffect(() => {
     const fetchAnuncios = async () => {
       try {
+        console.log("Entidad ID:", entidadId); 
+
         const token = sessionStorage.getItem("authToken");
+
+        console.log(`Haciendo solicitud a: /anuncios/?entidad_id=${entidadId}`);
+
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
         const res = await axios.get(
-          `/anuncios/?entidad_id=${entidadId}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-        setPosts(res.data); // 👈 anuncios obtenidos de la API
+          `/anuncios/?entidad_id=${entidadId}`, { headers });
+        setPosts(res.data); 
       } catch (err) {
         console.error("Error cargando anuncios:", err);
       }

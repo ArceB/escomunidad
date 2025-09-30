@@ -1,9 +1,12 @@
-import { Home, Building2, Users, Bell } from "lucide-react";
+import { Building2, Users, Bell, LogOut } from "lucide-react";
 import { Search } from "components/template/Search";
 import { Button } from "components/ui";
 import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 import SearchIcon from "assets/dualicons/search.svg?react";
 import { Notifications } from "components/template/Notifications";
+import { useNavigate } from "react-router";
+import { useAuthContext } from "app/contexts/auth/context";
+import axios from "utils/axios";
 
 function SlashIcon(props) {
   return (
@@ -26,12 +29,42 @@ function SlashIcon(props) {
 }
 
 export default function NavBar({ showNotifications = false }) {
+  const navigate = useNavigate();
+  const { isAuthenticated, logout } = useAuthContext();
+
+  const handleLogout = async () => {
+    try {
+      // Llamar al backend para invalidar refresh token
+      const refreshToken = sessionStorage.getItem("refreshToken");
+      if (refreshToken) {
+        await axios.post("/logout/", { refresh: refreshToken });
+      }
+    } catch (err) {
+      console.error("Error invalidando token:", err);
+    } finally {
+      // Limpiar tokens y contexto
+      sessionStorage.removeItem("authToken");
+      sessionStorage.removeItem("refreshToken");
+      logout(); // limpia contexto de usuario
+      navigate("/login", { replace: true });
+    }
+  };
+
+  const handleEntidadesClick = () => {
+    navigate("/administracion/entidades");
+  };
+
   return (
     <header className="w-full fixed top-0 left-0 z-50 bg-white dark:bg-dark-900 border-b border-gray-200 dark:border-dark-700 shadow-sm">
       <div className="w-full flex items-center justify-between px-6 py-3">
         {/* Logo */}
         <div className="flex items-center space-x-3">
-          <img src="/logo.png" alt="Logo" className="h-8" />
+          <img
+            src="/logo.png"
+            alt="Logo"
+            className="h-8 cursor-pointer"
+            onClick={() => navigate(isAuthenticated ? "/administracion/entidades" : "/principal")}
+          />
         </div>
 
         {/* Barra de búsqueda */}
@@ -71,11 +104,9 @@ export default function NavBar({ showNotifications = false }) {
         {/* Navegación + Notificaciones */}
         <div className="flex items-center space-x-6">
           <nav className="flex items-center space-x-6">
-            <button className="flex flex-col items-center text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400">
-              <Home className="h-6 w-6" />
-              <span className="sr-only">Inicio</span>
-            </button>
-            <button className="flex flex-col items-center text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400">
+            <button className="flex flex-col items-center text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400"
+              onClick={handleEntidadesClick}
+            >
               <Building2 className="h-6 w-6" />
               <span className="sr-only">Entidades</span>
             </button>
@@ -86,7 +117,7 @@ export default function NavBar({ showNotifications = false }) {
           </nav>
 
           {/* Notificaciones solo si está habilitado */}
-          {showNotifications && (
+          {showNotifications && isAuthenticated && (
             <div className="relative">
               <Notifications>
                 <Button
@@ -102,6 +133,20 @@ export default function NavBar({ showNotifications = false }) {
                   </span>
                 </Button>
               </Notifications>
+            </div>
+          )}
+          {/* Cerrar sesión solo si está autenticado */}
+          {isAuthenticated && (
+            <div className="relative">
+              <Button
+                variant="flat"
+                isIcon
+                className="relative size-9 rounded-full"
+                onClick={handleLogout}
+              >
+                <LogOut className="h-6 w-6 text-gray-600 dark:text-gray-300" />
+                <span className="sr-only">Cerrar sesión</span>
+              </Button>
             </div>
           )}
         </div>

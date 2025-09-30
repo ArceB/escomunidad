@@ -1,5 +1,6 @@
 // Import Dependencies
 import { useNavigate } from "react-router";
+import { useAuthContext } from "app/contexts/auth/context";
 import PropTypes from "prop-types";
 import { Fragment, useRef, useState } from "react";
 import {
@@ -114,8 +115,11 @@ export function Toolbar({ query, setQuery }) {
 
 function ActionMenu() {
   const navigate = useNavigate();
+  const { role } = useAuthContext();
+  if (!(role === "admin" || role === "superadmin")) return null;
   return (
     <Menu as="div" className="relative inline-block text-left">
+
       <MenuButton
         as={Button}
         variant="flat"
@@ -123,6 +127,7 @@ function ActionMenu() {
       >
         <ChevronDownIcon className="size-4.5" strokeWidth="2" />
       </MenuButton>
+
       <Transition
         as={Fragment}
         enter="transition ease-out"
@@ -136,25 +141,25 @@ function ActionMenu() {
           <MenuItem>
             {({ focus }) => (
               <button
-              onClick={() => navigate("/administracion/nueva-entidad")}
+                onClick={() => navigate("/administracion/nueva-entidad")}
                 className={clsx(
                   "flex h-9 w-full items-center space-x-2 px-3 tracking-wide outline-hidden transition-colors ",
                   focus &&
-                    "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
+                  "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
                 )}
               >
                 <PlusIcon className="size-4.5 stroke-2" />
                 <span>Nueva Entidad</span>
               </button>
             )}
-          </MenuItem>          
+          </MenuItem>
           <MenuItem>
             {({ focus }) => (
               <button
                 className={clsx(
                   "flex h-9 w-full items-center space-x-2 px-3 tracking-wide outline-hidden transition-colors ",
                   focus &&
-                    "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
+                  "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
                 )}
               >
                 <Cog8ToothIcon className="size-4.5 stroke-2" />
@@ -164,6 +169,7 @@ function ActionMenu() {
           </MenuItem>
         </MenuItems>
       </Transition>
+
     </Menu>
   );
 }

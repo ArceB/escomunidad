@@ -7,6 +7,8 @@ import { useAuthContext } from "app/contexts/auth/context";
 import { AppLayout } from "app/layouts/AppLayout";
 import { DynamicLayout } from "app/layouts/DynamicLayout";
 import AuthGuard from "middleware/AuthGuard";
+import AdminGuard from "middleware/AdminGuard";
+import AnuncioGuard from "middleware/AnuncioGuard";
 
 // ----------------------------------------------------------------------
 
@@ -974,13 +976,19 @@ const protectedRoutes = {
         },
 
         {
-          path: "entidades/:id/anuncios/nuevo",  // 📌 crear anuncio
-          lazy: async () => ({
-            Component: (await import("app/pages/administracion/nuevo-anuncio")).default,
-          }),
+          path: "entidades/:id/anuncios/nuevo",
+          element: <AnuncioGuard />, 
+          children: [
+            {
+              index: true,
+              lazy: async () => ({
+                Component: (await import("app/pages/administracion/nuevo-anuncio")).default,
+              }),
+            },
+          ],
         },
         {
-          path: "anuncios/:anuncioId", // 📌 detalle de anuncio sin entidadId
+          path: "anuncios/:anuncioId",
           lazy: async () => ({
             Component: (await import("app/pages/administracion/publicacion")).default,
           }),
@@ -988,9 +996,15 @@ const protectedRoutes = {
 
         {
           path: "nueva-entidad",
-          lazy: async () => ({
-            Component: (await import("app/pages/administracion/nueva-entidad")).default,
-          }),
+          element: <AdminGuard />,
+          children: [
+            {
+              index: true,
+              lazy: async () => ({
+                Component: (await import("app/pages/administracion/nueva-entidad")).default,
+              }),
+            },
+          ],
         },
       ],
     },

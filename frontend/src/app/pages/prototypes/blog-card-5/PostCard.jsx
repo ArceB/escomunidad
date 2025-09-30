@@ -1,6 +1,6 @@
 // Import Dependencies
 import PropTypes from "prop-types";
-import { BookmarkIcon, HeartIcon } from "@heroicons/react/24/outline";
+import { EditIcon, TrashIcon } from 'lucide-react';
 
 // Local Imports
 import { Highlight } from "components/shared/Highlight";
@@ -36,19 +36,21 @@ export function PostCard({ created_at, cover, title, category, CategoryIcon, que
             <div className="flex ltr:-mr-1.5 rtl:-ml-1.5">
               <Button
                 data-tooltip
-                data-tooltip-content="Like"
+                data-tooltip-content="Editar"
                 unstyled
                 className="size-7 rounded-full hover:bg-white/20"
+                onClick={() => console.log("Editar")} 
               >
-                <HeartIcon className="size-4.5 stroke-2 text-secondary-lighter" />
+                <EditIcon className="size-4.5 stroke-2 stroke-white" />
               </Button>
               <Button
                 data-tooltip
-                data-tooltip-content="Save"
+                data-tooltip-content="Eliminar"
                 unstyled
                 className="size-7 rounded-full hover:bg-white/20"
+                onClick={() => console.log("Eliminar")} 
               >
-                <BookmarkIcon className="size-4.5 stroke-2 text-white" />
+                <TrashIcon className="size-4.5 stroke-2 stroke-white" />
               </Button>
             </div>
           </div>

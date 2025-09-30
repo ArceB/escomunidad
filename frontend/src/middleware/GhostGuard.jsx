@@ -21,7 +21,6 @@ export default function GhostGuard() {
     // 🔹 Fallback si no hay rol válido
     return <Navigate to="/dashboards/sales" replace />;
   }
-
   // 🔹 Si no hay sesión, renderiza las rutas públicas (login, principal, etc.)
   return <>{outlet}</>;
 }
