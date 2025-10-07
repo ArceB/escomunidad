@@ -21,10 +21,7 @@ function App() {
         <LocaleProvider>
           <BreakpointProvider>
             <SidebarProvider>
-              {/* 🚀 Tu aplicación normal */}
               <RouterProvider router={router} />
-
-              {/* 💬 Chat flotante disponible en toda la app */}
               <FloatingChat />
             </SidebarProvider>
           </BreakpointProvider>

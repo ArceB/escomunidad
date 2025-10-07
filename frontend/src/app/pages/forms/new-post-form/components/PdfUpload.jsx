@@ -13,7 +13,7 @@ import { useId } from "hooks";
 // ----------------------------------------------------------------------
 
 const PdfUpload = forwardRef(
-  ({ label, value, onChange, error, classNames }, ref) => {
+  ({ label, value, onChange, error, classNames, existingFile }, ref) => {
     const id = useId();
 
     const { getRootProps, getInputProps, isDragReject, isDragAccept } =
@@ -46,13 +46,13 @@ const PdfUpload = forwardRef(
           className={clsx(
             "h-32 w-full rounded-lg border-2 border-dashed border-current flex items-center justify-center",
             !isDragAccept &&
-              (isDragReject || error) &&
-              "text-error dark:text-error-light",
+            (isDragReject || error) &&
+            "text-error dark:text-error-light",
             isDragAccept && "text-primary-600 dark:text-primary-500",
             !isDragReject &&
-              !isDragAccept &&
-              !error &&
-              "text-gray-300 dark:text-dark-450",
+            !isDragAccept &&
+            !error &&
+            "text-gray-300 dark:text-dark-450",
             classNames?.box,
           )}
         >
@@ -70,13 +70,24 @@ const PdfUpload = forwardRef(
                       {value.name}
                     </span>
                   </div>
-
-                  <Button
-                    onClick={onRemove}
-                    className="size-6 shrink-0 rounded-full border p-0 dark:border-dark-450"
-                  >
+                  <Button onClick={onRemove} className="size-6 shrink-0 rounded-full border p-0 dark:border-dark-450">
                     <XMarkIcon className="size-4" />
                   </Button>
+                </div>
+              ) : existingFile ? (
+                <div className="flex items-center justify-between w-full px-4">
+                  <div className="flex items-center gap-2 truncate">
+                    <DocumentTextIcon className="size-6 text-primary-600 dark:text-primary-400" />
+                    <a
+                      href={existingFile}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="truncate text-gray-700 dark:text-dark-100 underline"
+                    >
+                      {existingFile.split("/").pop()} {/* Extrae solo el nombre del archivo */}
+                    </a>
+
+                  </div>
                 </div>
               ) : (
                 <Button
@@ -113,6 +124,7 @@ PdfUpload.displayName = "PdfUpload";
 PdfUpload.propTypes = {
   value: PropTypes.object,
   onChange: PropTypes.func,
+  existingFile: PropTypes.string,
   error: PropTypes.oneOfType([PropTypes.bool, PropTypes.node]),
   classNames: PropTypes.object,
   label: PropTypes.node,

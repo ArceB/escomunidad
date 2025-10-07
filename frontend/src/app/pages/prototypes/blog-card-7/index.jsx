@@ -11,13 +11,13 @@ import { useFuse } from "hooks";
 // ----------------------------------------------------------------------
 
 export default function BlogCard7({ onCardClick }) {
-  const { id: entidadId } = useParams(); 
+  const { id: entidadId } = useParams();
   const [posts, setPosts] = useState([]);
 
   useEffect(() => {
     const fetchAnuncios = async () => {
       try {
-        console.log("Entidad ID:", entidadId); 
+        console.log("Entidad ID:", entidadId);
 
         const token = sessionStorage.getItem("authToken");
 
@@ -26,7 +26,7 @@ export default function BlogCard7({ onCardClick }) {
         const headers = token ? { Authorization: `Bearer ${token}` } : {};
         const res = await axios.get(
           `/anuncios/?entidad_id=${entidadId}`, { headers });
-        setPosts(res.data); 
+        setPosts(res.data);
       } catch (err) {
         console.error("Error cargando anuncios:", err);
       }
@@ -48,23 +48,28 @@ export default function BlogCard7({ onCardClick }) {
         <Toolbar setQuery={setQuery} query={query} />
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 lg:gap-6 xl:grid-cols-4">
-          {filteredPosts.map(({ item: anuncio }) => (
-            <div
-              key={anuncio.id}
-              onClick={() => onCardClick?.(anuncio)}
-              className="cursor-pointer"
-            >
-              <PostCard
-                cover={anuncio.banner || "/images/800x600.png"} // fallback
-                category={anuncio.fecha_inicio}
-                created_at={anuncio.fecha_fin}
-                title={anuncio.titulo}
-                description={anuncio.frase}
-                likes={anuncio.likes || 0}
-                query={query}
-              />
-            </div>
-          ))}
+          {filteredPosts.map((f) => {
+            const anuncio = f.item; // Asegúrate de usar f.item
+            return (
+              <div
+                key={anuncio.id}
+                onClick={() => onCardClick?.(anuncio)}
+                className="cursor-pointer"
+              >
+                <PostCard
+                  anuncio={anuncio} // Pasamos el objeto completo para el modal/editar
+                  cover={anuncio.banner || "/images/800x600.png"}
+                  category={anuncio.fecha_inicio}
+                  created_at={anuncio.fecha_fin}
+                  title={anuncio.titulo}
+                  description={anuncio.frase}
+                  likes={anuncio.likes || 0}
+                  query={query}
+                />
+              </div>
+            );
+          })}
+
         </div>
 
         {filteredPosts.length === 0 && (

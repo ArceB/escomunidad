@@ -5,6 +5,10 @@ import { DocumentPlusIcon } from "@heroicons/react/24/outline";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
 import axios from "utils/axios";
+import { useAuthContext } from "app/contexts/auth/context";
+import { useParams, useNavigate } from "react-router";
+
+
 
 
 // Local Imports
@@ -38,13 +42,27 @@ export default function NuevaEntidadPage() {
         defaultValues: initialState,
     });
 
+    const { role, user } = useAuthContext();
+
 
     const [responsables, setResponsables] = useState([]);
     const [usuarios, setUsuarios] = useState([]);
+    const [administradores, setAdministradores] = useState([]);
+
+    const { id } = useParams(); // si existe, estamos editando
+    const navigate = useNavigate();
+    const isEditing = Boolean(id);
+
+    const [existingCover, setExistingCover] = useState(null);
 
     useEffect(() => {
         const fetchUsers = async () => {
             try {
+                if (role === "superadmin") {
+                    const resAdmin = await axios.get("/users/?role=admin");
+                    setAdministradores(resAdmin.data);
+                }
+
                 const resResp = await axios.get("/users/?role=responsable");
                 setResponsables(resResp.data);
 
@@ -58,36 +76,92 @@ export default function NuevaEntidadPage() {
         fetchUsers();
     }, []);
 
+    useEffect(() => {
+        console.log("Administradores cargados:", administradores);
+
+        if (!isEditing) return;
+
+        const fetchEntidad = async () => {
+            try {
+                const res = await axios.get(`/entidades/${id}/`);
+                const entidad = res.data;
+
+                console.log("Entidad cargada:", entidad);
+                console.log("Administrador ID:", entidad.administrador_id);
+
+                // Realizamos el reset con los datos de la entidad
+                reset({
+                    nombre: entidad.nombre || "",
+                    correo: entidad.correo || "",
+                    telefono: entidad.telefono || "",
+                    responsable_id: entidad.responsable?.id || "",
+                    usuarios: entidad.usuarios?.map((u) => u.id) || [],
+                    administrador_id: entidad.administrador_id || "",
+                    cover: null,
+                });
+
+                setExistingCover(entidad.foto_portada || null);
+            } catch (err) {
+                console.error("Error cargando entidad:", err);
+                toast.error("No se pudo cargar la entidad.");
+            }
+        };
+
+        fetchEntidad();
+    }, [id, isEditing, reset]);
+
+
+
     const onSubmit = async (data) => {
         try {
             const formData = new FormData();
             formData.append("nombre", data.nombre);
             formData.append("correo", data.correo);
             formData.append("telefono", data.telefono);
+
+            if (role === "superadmin" && data.administrador_id) {
+                formData.append("administrador_id", data.administrador_id);
+            } else if (role === "admin") {
+                formData.append("administrador_id", user.id); // se asigna automáticamente
+            }
+
             if (data.responsable_id) {
                 formData.append("responsable_id", data.responsable_id);
             }
+
             if (data.usuarios && data.usuarios.length > 0) {
                 data.usuarios.forEach((id) => {
                     formData.append("usuarios_ids", id);
                 });
             }
+
             if (data.cover) {
                 formData.append("foto_portada", data.cover);
             }
 
-            const res = await axios.post("/entidades/", formData, {
-                headers: { "Content-Type": "multipart/form-data" },
-            });
+            // 🟢 CREAR o EDITAR según el modo
+            if (isEditing) {
+                // Si estamos editando, se hace PUT
+                await axios.put(`/entidades/${id}/`, formData, {
+                    headers: { "Content-Type": "multipart/form-data" },
+                });
+                toast.success("Entidad actualizada ✅");
+            } else {
+                // Si estamos creando, se hace POST
+                await axios.post("/entidades/", formData, {
+                    headers: { "Content-Type": "multipart/form-data" },
+                });
+                toast.success("Entidad creada con éxito 🚀");
+            }
 
-            toast.success("Entidad creada con éxito 🚀");
-            console.log("Respuesta:", res.data);
-            reset();
+            // 🔁 Redirigir al listado de entidades
+            navigate("/administracion/entidades");
         } catch (err) {
-            console.error("Error al crear entidad:", err.response || err);
-            toast.error("Error al crear entidad ❌");
+            console.error("Error al guardar entidad:", err.response || err);
+            toast.error("Error al guardar entidad ❌");
         }
     };
+
 
 
     return (
@@ -144,6 +218,26 @@ export default function NuevaEntidadPage() {
                                         error={errors?.telefono?.message}
                                     />
 
+                                    {/* Administrador */}
+                                    {role === "superadmin" && (
+                                        <Controller
+                                            render={({ field: { value, onChange, ...rest } }) => (
+                                                <Combobox
+                                                    data={administradores}
+                                                    displayField="username"
+                                                    value={administradores.find((a) => a.id === value) || null}
+                                                    onChange={(val) => onChange(val?.id)}
+                                                    placeholder="Seleccione Administrador"
+                                                    label="Administrador"
+                                                    highlight
+                                                    {...rest}
+                                                />
+                                            )}
+                                            control={control}
+                                            name="administrador_id"
+                                        />
+                                    )}
+
                                     {/* Responsable */}
                                     <Controller
                                         render={({ field: { value, onChange, ...rest } }) => (
@@ -189,6 +283,7 @@ export default function NuevaEntidadPage() {
                                             <CoverImageUpload
                                                 label="Foto de portada"
                                                 error={errors?.cover?.message}
+                                                existingImage={existingCover}
                                                 {...field}
                                             />
                                         )}

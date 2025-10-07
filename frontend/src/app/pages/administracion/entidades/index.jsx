@@ -24,6 +24,10 @@ export default function EntidadesPage() {
     fetchEntidades();
   }, []);
 
+  const handleDeleted = (deletedId) => {
+    setEntidades((prev) => prev.filter((e) => e.id !== deletedId));
+  };
+
   return (
     <Page title="Entidades">
       <NavBar showNotifications />
@@ -31,6 +35,7 @@ export default function EntidadesPage() {
         <BlogCard5
           data={entidades}
           onCardClick={(entidad) => navigate(`/administracion/entidades/${entidad.id}/anuncios`)}
+          onDeleted={handleDeleted}
         />
       </main>
     </Page>

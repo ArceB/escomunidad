@@ -2,8 +2,7 @@
 import { CloudArrowUpIcon } from "@heroicons/react/20/solid";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import clsx from "clsx";
-import { forwardRef, useCallback } from "react";
-import { useDropzone } from "react-dropzone";
+import { forwardRef } from "react";
 import PropTypes from "prop-types";
 
 // Local Imports
@@ -14,27 +13,16 @@ import { useId } from "hooks";
 // ----------------------------------------------------------------------
 
 const CoverImageUpload = forwardRef(
-  ({ label, value, onChange, error, classNames }, ref) => {
+  ({ label, value, onChange, error, classNames, existingImage }, ref) => {
     const id = useId();
 
-    const { getRootProps, getInputProps, isDragReject, isDragAccept } =
-      useDropzone({
-        onDrop: useCallback((acceptedFiles) => {
-          const file = acceptedFiles[0];
-          if (file) {
-            onChange(file);
-          }
-          // eslint-disable-next-line react-hooks/exhaustive-deps
-        }, []),
-        accept: {
-          "image/png": [".png"],
-          "image/jpeg": [".jpeg"],
-          "image/jpg": [".jpg"],
-        },
-        multiple: false,
-      });
+    const handleFileChange = (e) => {
+      const file = e?.target?.files?.[0];
+      if (file) onChange(file);
+    };
 
-    const onRemove = () => {
+    const onRemove = (e) => {
+      e?.stopPropagation?.();
       onChange(null);
     };
 
@@ -45,28 +33,27 @@ const CoverImageUpload = forwardRef(
             {label}
           </label>
         )}
-        
+
         <div
           className={clsx(
-            "h-40 w-full rounded-lg border-2 border-dashed border-current",
-            !isDragAccept &&
-              (isDragReject || error) &&
-              "text-error dark:text-error-light",
-            isDragAccept && "text-primary-600 dark:text-primary-500",
-            !isDragReject &&
-              !isDragAccept &&
-              !error &&
-              "text-gray-300 dark:text-dark-450",
-            classNames?.box,
+            "h-40 w-full rounded-lg border-2 border-dashed border-current flex items-center justify-center",
+            error && "text-error dark:text-error-light",
+            !error && "text-gray-300 dark:text-dark-450",
+            classNames?.box
           )}
         >
+          {/* Upload de la librería: SOLO un hijo tipo función */}
           <Upload
             ref={ref}
-            inputProps={{ ...getInputProps() }}
-            {...getRootProps()}
+            inputProps={{
+              accept: "image/png, image/jpeg, image/jpg",
+              onChange: handleFileChange, // <- actualiza RHF
+              name: id,
+            }}
           >
-            {({ ...props }) =>
+            {(uploadProps) =>
               value ? (
+                // Vista previa cuando ya hay un archivo nuevo seleccionado
                 <div
                   title={value.name}
                   className="group relative h-full w-full rounded-lg ring-primary-600 ring-offset-4 ring-offset-white transition-all hover:ring-3 dark:ring-primary-500 dark:ring-offset-dark-700"
@@ -89,19 +76,30 @@ const CoverImageUpload = forwardRef(
                   </div>
                 </div>
               ) : (
-                <Button
-                  unstyled
-                  className="h-full w-full shrink-0 flex-col space-x-2 px-3 "
-                  {...props}
+                // Zona clickeable para seleccionar archivo
+                <button
+                  type="button"
+                  className="h-full w-full flex flex-col items-center justify-center px-3"
+                  {...uploadProps} // <- muy importante: hace que el click abra el selector
                 >
-                  <CloudArrowUpIcon className="pointer-events-none size-12" />
-                  <span className="pointer-events-none mt-2 text-gray-600 dark:text-dark-200">
-                    <span className="text-primary-600 dark:text-primary-400">
-                      Browse
-                    </span>
-                    <span> or drop your files here</span>
-                  </span>
-                </Button>
+                  {existingImage ? (
+                    <img
+                      src={existingImage}
+                      alt="Portada actual"
+                      className="h-full w-full object-cover rounded-lg"
+                    />
+                  ) : (
+                    <>
+                      <CloudArrowUpIcon className="pointer-events-none size-12" />
+                      <span className="pointer-events-none mt-2 text-gray-600 dark:text-dark-200">
+                        <span className="text-primary-600 dark:text-primary-400">
+                          Browse
+                        </span>
+                        <span> or drop your files here</span>
+                      </span>
+                    </>
+                  )}
+                </button>
               )
             }
           </Upload>
@@ -115,7 +113,7 @@ const CoverImageUpload = forwardRef(
         </InputErrorMsg>
       </div>
     );
-  },
+  }
 );
 
 CoverImageUpload.displayName = "CoverImageUpload";
@@ -127,6 +125,7 @@ CoverImageUpload.propTypes = {
   error: PropTypes.oneOfType([PropTypes.bool, PropTypes.node]),
   classNames: PropTypes.object,
   label: PropTypes.node,
+  existingImage: PropTypes.string,
 };
 
 export { CoverImageUpload };

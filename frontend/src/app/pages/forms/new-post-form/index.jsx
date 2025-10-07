@@ -1,8 +1,11 @@
 // Import Dependencies
+import { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { Controller, useForm } from "react-hook-form";
 import { DocumentPlusIcon } from "@heroicons/react/24/outline";
 import { toast } from "sonner";
+import axios from "utils/axios";
 
 // Local Imports
 import { schema } from "./schema";
@@ -12,7 +15,6 @@ import { Delta, TextEditor } from "components/shared/form/TextEditor";
 import { CoverImageUpload } from "./components/CoverImageUpload";
 import { PdfUpload } from "./components/PdfUpload";
 import { DatePicker } from "components/shared/form/Datepicker";
-import axios from "utils/axios";
 
 // ----------------------------------------------------------------------
 
@@ -47,6 +49,11 @@ const editorModules = {
 const NewPostForm = ({ entidadId }) => {
   console.log("Entidad ID recibido en formulario:", entidadId);
 
+  const { anuncioId } = useParams(); // Obtener el ID del anuncio desde la URL}
+  const [existingCover, setExistingCover] = useState(null);
+  const [existingPdf, setExistingPdf] = useState(null);
+  const navigate = useNavigate();
+
   const {
     register,
     handleSubmit,
@@ -57,6 +64,35 @@ const NewPostForm = ({ entidadId }) => {
     resolver: yupResolver(schema),
     defaultValues: initialState,
   });
+
+  useEffect(() => {
+    if (!anuncioId) return;
+
+    const fetchAnuncio = async () => {
+      try {
+        const res = await axios.get(`/anuncios/${anuncioId}/`);
+        const anuncio = res.data;
+
+        reset({
+          titulo: anuncio.titulo || "",
+          frase: anuncio.frase || "",
+          descripcion: anuncio.descripcion ? new Delta([{ insert: anuncio.descripcion }]) : new Delta(),
+          banner: null,
+          archivo_pdf: null,
+          fecha_inicio: anuncio.fecha_inicio || "",
+          fecha_fin: anuncio.fecha_fin || "",
+        });
+
+        setExistingCover(anuncio.banner || null);
+        setExistingPdf(anuncio.archivo_pdf || null);
+      } catch (err) {
+        console.error("Error al cargar el anuncio:", err);
+        toast.error("Error al cargar el anuncio ❌");
+      }
+    };
+
+    fetchAnuncio();
+  }, [anuncioId, reset]);
 
   const onSubmit = async (data) => {
     try {
@@ -88,29 +124,44 @@ const NewPostForm = ({ entidadId }) => {
       formData.append("entidad", entidadId);
 
       const token = sessionStorage.getItem("authToken");
-      await axios.post("http://localhost:8000/api/anuncios/", formData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "multipart/form-data",
-        },
-      });
 
-      toast.success("Anuncio creado con éxito 🚀");
-      reset();
+
+      if (anuncioId) {
+        // Si estamos editando, hacemos un PUT
+        await axios.put(`http://localhost:8000/api/anuncios/${anuncioId}/`, formData, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        });
+
+        toast.success("Anuncio actualizado con éxito 🚀");
+      } else {
+        // Si estamos creando, hacemos un POST
+        await axios.post("http://localhost:8000/api/anuncios/", formData, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        });
+
+        toast.success("Anuncio creado con éxito 🚀");
+      }
+      navigate(`/administracion/entidades/${entidadId}/anuncios`);
     } catch (err) {
-      console.error("Error al crear anuncio:", err.response || err);
-      toast.error("Error al crear anuncio ❌");
+      console.error("Error al crear o editar anuncio:", err.response || err);
+      toast.error("Error al crear o editar anuncio ❌");
     }
   };
 
   return (
-    <Page title="Nuevo Anuncio">
+    <Page ttitle={anuncioId ? "Editar Anuncio" : "Nuevo Anuncio"}>
       <div className="transition-content px-(--margin-x) pb-6">
         <div className="flex flex-col items-center justify-between space-y-4 py-5 sm:flex-row sm:space-y-0 lg:py-6">
           <div className="flex items-center gap-1">
             <DocumentPlusIcon className="size-6" />
             <h2 className="line-clamp-1 text-xl font-medium text-gray-700 dark:text-dark-50">
-              Nuevo Anuncio
+              {anuncioId ? "Editar Anuncio" : "Nuevo Anuncio"}
             </h2>
           </div>
           <div className="flex gap-2">
@@ -120,15 +171,11 @@ const NewPostForm = ({ entidadId }) => {
               type="submit"
               form="new-post-form"
             >
-              Publicar
+              {anuncioId ? "Actualizar" : "Publicar"}
             </Button>
           </div>
         </div>
-        <form
-          autoComplete="off"
-          onSubmit={handleSubmit(onSubmit)}
-          id="new-post-form"
-        >
+        <form autoComplete="off" onSubmit={handleSubmit(onSubmit)} id="new-post-form">
           <div className="grid grid-cols-12 place-content-start gap-4 sm:gap-5 lg:gap-6">
             <div className="col-span-12 lg:col-span-8">
               <Card className="p-4 sm:px-5">
@@ -169,25 +216,24 @@ const NewPostForm = ({ entidadId }) => {
                   <Controller
                     render={({ field }) => (
                       <CoverImageUpload
-                        classNames={{
-                          box: "mt-1.5",
-                        }}
+                        classNames={{ box: "mt-1.5" }}
                         label="Imagen del banner"
                         error={errors?.banner?.message}
+                        existingImage={existingCover}
                         {...field}
                       />
                     )}
                     name="banner"
                     control={control}
                   />
+
                   <Controller
                     render={({ field }) => (
                       <PdfUpload
-                        classNames={{
-                          box: "mt-1.5",
-                        }}
+                        classNames={{ box: "mt-1.5" }}
                         label="Adjuntar archivo"
                         error={errors?.archivo_pdf?.message}
+                        existingFile={existingPdf}
                         {...field}
                       />
                     )}

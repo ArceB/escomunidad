@@ -31,6 +31,7 @@ export default function BlogCard5({ onCardClick, data }) {
               className="cursor-pointer"
             >
               <PostCard
+                entidad={entidad}
                 cover={entidad.foto_portada || "/images/800x600.png"} // fallback
                 title={entidad.nombre}
                 category={entidad.correo}

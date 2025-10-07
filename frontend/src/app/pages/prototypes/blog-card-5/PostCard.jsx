@@ -1,13 +1,22 @@
 // Import Dependencies
 import PropTypes from "prop-types";
 import { EditIcon, TrashIcon } from 'lucide-react';
+import { useAuthContext } from "app/contexts/auth/context";
+import { useDisclosure } from "hooks";
+import { useNavigate } from "react-router"; 
 
 // Local Imports
 import { Highlight } from "components/shared/Highlight";
 import { Button, Card } from "components/ui";
+import { DeleteEntityModal } from "app/pages/components/modal/DeleteEntityModal";
+
 
 // ----------------------------------------------------------------------
-export function PostCard({ created_at, cover, title, category, CategoryIcon, query }) {
+export function PostCard({ entidad, created_at, cover, title, category, CategoryIcon, query, onDeleted, }) {
+  const { role } = useAuthContext();
+  const [isDeleteOpen, { open: openDelete, close: closeDelete }] = useDisclosure();
+  const navigate = useNavigate();
+
   return (
     <Card className="flex grow flex-col">
       <img
@@ -33,26 +42,46 @@ export function PostCard({ created_at, cover, title, category, CategoryIcon, que
               <div className="mx-3 my-0.5 w-px self-stretch bg-white/20"></div>
               <p className="shrink-0 text-tiny-plus">{created_at}</p>
             </div>
-            <div className="flex ltr:-mr-1.5 rtl:-ml-1.5">
-              <Button
-                data-tooltip
-                data-tooltip-content="Editar"
-                unstyled
-                className="size-7 rounded-full hover:bg-white/20"
-                onClick={() => console.log("Editar")} 
-              >
-                <EditIcon className="size-4.5 stroke-2 stroke-white" />
-              </Button>
-              <Button
-                data-tooltip
-                data-tooltip-content="Eliminar"
-                unstyled
-                className="size-7 rounded-full hover:bg-white/20"
-                onClick={() => console.log("Eliminar")} 
-              >
-                <TrashIcon className="size-4.5 stroke-2 stroke-white" />
-              </Button>
-            </div>
+
+            {(role === "superadmin" || role === "admin") && (
+              <div className="flex ltr:-mr-1.5 rtl:-ml-1.5">
+                <Button
+                  data-tooltip
+                  data-tooltip-content="Editar"
+                  unstyled
+                  className="size-7 rounded-full hover:bg-white/20"
+                  onClick={(e) => {
+                    e.stopPropagation(); 
+                    navigate(`/administracion/entidades/${entidad.id}/editar`);
+                  }}
+                >
+                  <EditIcon className="size-4.5 stroke-2 stroke-white" />
+                </Button>
+                <Button
+                  data-tooltip
+                  data-tooltip-content="Eliminar"
+                  unstyled
+                  className="size-7 rounded-full hover:bg-white/20"
+                  onClick={(e) => {
+                    e.stopPropagation(); 
+                    openDelete();         
+                  }}
+                >
+                  <TrashIcon className="size-4.5 stroke-2 stroke-white" />
+                </Button>
+
+                {isDeleteOpen && (
+                  <DeleteEntityModal
+                    entidadId={entidad.id}
+                    entidadNombre={entidad.nombre}
+                    onDeleted={() => {
+                      onDeleted?.(entidad.id);
+                      closeDelete();
+                    }}
+                  />
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -61,10 +90,12 @@ export function PostCard({ created_at, cover, title, category, CategoryIcon, que
 }
 
 PostCard.propTypes = {
+  entidad: PropTypes.object.isRequired,
   created_at: PropTypes.string,
   cover: PropTypes.string,
   title: PropTypes.string,
   category: PropTypes.string,
   CategoryIcon: PropTypes.elementType,
   query: PropTypes.string,
+  onDeleted: PropTypes.func,
 };

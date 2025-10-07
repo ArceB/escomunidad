@@ -115,6 +115,8 @@ function ActionMenu() {
   const navigate = useNavigate();
   const { id: entidadId } = useParams();
   const { role } = useAuthContext();
+  
+  if (!role) return null; 
 
   return (
     <Menu as="div" className="relative inline-block text-left">

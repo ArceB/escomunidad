@@ -6,16 +6,19 @@ import { EditIcon, TrashIcon } from 'lucide-react';
 import { Highlight } from "components/shared/Highlight";
 import { Button, Card } from "components/ui";
 
+import { useAuthContext } from "app/contexts/auth/context";
+import { useNavigate } from "react-router";
+import { useState } from "react";
+
+import { DeleteAnnouncementModal } from "app/pages/components/modal/DeleteAnnouncementModal";
+
 // ----------------------------------------------------------------------
 
-export function PostCard({
-  cover,
-  category,
-  created_at,
-  title,
-  description,
-  query,
-}) {
+export function PostCard({ anuncio, cover, category, created_at, title, description, query, }) {
+  const { role } = useAuthContext();
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const navigate = useNavigate();
+
   return (
     <Card className="flex flex-col">
       <img
@@ -45,27 +48,47 @@ export function PostCard({
           </a>
         </div>
         <p className="grow pt-2">{description}</p>
-        <div className="mt-3 text-end">
-          <Button
-            data-tooltip
-            data-tooltip-content="Editar"
-            unstyled
-            className="size-7 rounded-full hover:bg-white/20"
-            onClick={() => console.log("Editar")}
-          >
-            <EditIcon className="size-4.5 stroke-2 stroke-blue-800" />
-          </Button>
-          <Button
-            data-tooltip
-            data-tooltip-content="Eliminar"
-            unstyled
-            className="size-7 rounded-full hover:bg-white/20"
-            onClick={() => console.log("Eliminar")}
-          >
-            <TrashIcon className="size-4.5 stroke-2 stroke-blue-800" />
-          </Button>
-        </div>
+
+        {(role === "superadmin" || role === "admin" || role === "responsable") && (
+          <div className="mt-3 text-end">
+            <Button
+              data-tooltip
+              data-tooltip-content="Editar"
+              unstyled
+              className="size-7 rounded-full hover:bg-white/20"
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(`/administracion/entidades/${anuncio.entidad}/anuncios/${anuncio.id}/editar`);
+              }}
+            >
+              <EditIcon className="size-4.5 stroke-2 stroke-blue-800" />
+            </Button>
+            <Button
+              data-tooltip
+              data-tooltip-content="Eliminar"
+              unstyled
+              className="size-7 rounded-full hover:bg-white/20"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowDeleteModal(true);
+              }}
+            >
+              <TrashIcon className="size-4.5 stroke-2 stroke-blue-800" />
+            </Button>
+          </div>
+        )}
       </div>
+      {/* Modal de eliminación */}
+      {showDeleteModal && (
+        <DeleteAnnouncementModal
+          anuncioId={anuncio.id}
+          anuncioTitle={anuncio.titulo}
+          onDeleted={() => {
+            // Aquí podrías hacer que actualice la lista de anuncios
+            setShowDeleteModal(false); // Cierra el modal después de eliminar
+          }}
+        />
+      )}
     </Card>
   );
 }

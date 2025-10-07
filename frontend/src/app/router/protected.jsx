@@ -974,15 +974,28 @@ const protectedRoutes = {
             Component: (await import("app/pages/administracion/anuncios")).default,
           }),
         },
-
+        // 🟢 Crear anuncio
         {
           path: "entidades/:id/anuncios/nuevo",
-          element: <AnuncioGuard />, 
+          element: <AnuncioGuard />,
           children: [
             {
               index: true,
               lazy: async () => ({
                 Component: (await import("app/pages/administracion/nuevo-anuncio")).default,
+              }),
+            },
+          ],
+        },
+        // 🟣 Editar anuncio
+        {
+          path: "entidades/:id/anuncios/:anuncioId/editar",
+          element: <AnuncioGuard />,
+          children: [
+            {
+              index: true,
+              lazy: async () => ({
+                Component: (await import("app/pages/administracion/nuevo-anuncio")).default, // Reutiliza el componente de alta
               }),
             },
           ],
@@ -994,8 +1007,23 @@ const protectedRoutes = {
           }),
         },
 
+        // 🟢 Crear entidad
         {
           path: "nueva-entidad",
+          element: <AdminGuard />,
+          children: [
+            {
+              index: true,
+              lazy: async () => ({
+                Component: (await import("app/pages/administracion/nueva-entidad")).default,
+              }),
+            },
+          ],
+        },
+
+        // 🟣 Editar entidad 
+        {
+          path: "entidades/:id/editar",
           element: <AdminGuard />,
           children: [
             {
