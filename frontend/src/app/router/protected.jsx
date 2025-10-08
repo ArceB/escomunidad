@@ -963,6 +963,12 @@ const protectedRoutes = {
       path: "administracion",
       children: [
         {
+          path: "usuarios",
+          lazy: async () => ({
+            Component: (await import("app/pages/administracion/usuarios")).default,
+          }),
+        },
+        {
           path: "entidades",
           lazy: async () => ({
             Component: (await import("app/pages/administracion/entidades")).default,

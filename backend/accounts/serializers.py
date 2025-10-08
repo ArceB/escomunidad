@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from django.contrib.auth import get_user_model
 from .models import (
     User, Entidad, Anuncio, Notificacion,
     AprobacionResponsable, AprobacionAdministrador,
@@ -161,13 +162,34 @@ class ResponsableEntidadSerializer(serializers.ModelSerializer):
         model = ResponsableEntidad
         fields = ["id", "entidad", "entidad_id", "responsable", "responsable_id"]
 
-class CreateUserSerializer(serializers.ModelSerializer):
+User = get_user_model()
+
+class CrearUsuarioSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ["first_name", "last_name", "email", "role"]
 
     def create(self, validated_data):
-        user = User.objects.create(**validated_data)
-        user.set_unusable_password()  # Para que no tenga contraseña inicialmente
-        user.save()
+        base_username = validated_data["email"].split("@")[0]  # parte antes del @
+        username = base_username
+        i = 1
+
+        # Asegurar que el username sea único
+        while User.objects.filter(username=username).exists():
+            username = f"{base_username}{i}"
+            i += 1
+
+        # Crear el usuario
+        user = User.objects.create(
+            username=username,
+            first_name=validated_data["first_name"],
+            last_name=validated_data["last_name"],
+            email=validated_data["email"],
+            role=validated_data["role"],
+        )
+
         return user
+    
+class ResetPasswordSerializer(serializers.Serializer):
+    token = serializers.UUIDField()
+    password = serializers.CharField(write_only=True, min_length=8)

@@ -8,6 +8,7 @@ from datetime import date
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from django.core.mail import send_mail
 
 from .models import Anuncio, Entidad
 from .serializers import AnuncioSerializer
@@ -17,12 +18,12 @@ from .permissions import IsAdmin, IsSuperAdmin, IsResponsable, ReadOnly
 from .models import (
     User, Entidad, Anuncio, Notificacion,
     AprobacionResponsable, AprobacionAdministrador,
-    GestionEntidad, ResponsableEntidad
+    GestionEntidad, ResponsableEntidad, PasswordResetToken
 )
 from .serializers import (
     UserSerializer, EntidadSerializer, AnuncioSerializer, NotificacionSerializer,
     AprobacionResponsableSerializer, AprobacionAdministradorSerializer,
-    GestionEntidadSerializer, ResponsableEntidadSerializer
+    GestionEntidadSerializer, ResponsableEntidadSerializer, CrearUsuarioSerializer, ResetPasswordSerializer
 )
 
 
@@ -258,3 +259,75 @@ class LogoutView(APIView):
             return Response({"detail": "Logout exitoso"}, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
+class UsuarioViewSet(viewsets.ModelViewSet):
+    serializer_class = CrearUsuarioSerializer
+    queryset = User.objects.all()
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+
+        # Crear token temporal
+        token = PasswordResetToken.objects.create(user=user)
+
+        # Enviar correo
+        FRONTEND_URL = "http://localhost:5173"  # ajusta según tu setup
+        link = f"{FRONTEND_URL}/crear-contraseña/{token.token}/"
+
+        send_mail(
+            subject="Asignación de contraseña",
+            message=f"Hola {user.first_name}, accede al siguiente enlace para asignar tu contraseña: {link}",
+            from_email="no-reply@tusitio.com",
+            recipient_list=[user.email],
+        )
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    
+class VerifyResetToken(APIView):
+    def get(self, request):
+        token = request.query_params.get("token")
+        try:
+            reset_token = PasswordResetToken.objects.get(token=token)
+            if reset_token.is_valid():
+                return Response({"valid": True})
+            return Response({"valid": False}, status=400)
+        except PasswordResetToken.DoesNotExist:
+            return Response({"valid": False}, status=400)
+        
+class ResetPassword(APIView):
+    def get(self, request, token):
+        # Retornar algo tipo "Ingrese su nueva contraseña"
+        # Esto puede ser un template o un JSON con valid=True
+        try:
+            reset_token = PasswordResetToken.objects.get(token=token)
+            if reset_token.is_valid():
+                return Response({"valid": True, "token": str(token)})
+            return Response({"valid": False}, status=400)
+        except PasswordResetToken.DoesNotExist:
+            return Response({"valid": False}, status=400)
+    
+    def post(self, request):
+        serializer = ResetPasswordSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        token = serializer.validated_data["token"]
+        password = serializer.validated_data["password"]
+
+        try:
+            reset_token = PasswordResetToken.objects.get(token=token)
+            if not reset_token.is_valid():
+                return Response({"error": "Token inválido o expirado"}, status=400)
+            
+            user = reset_token.user
+            user.set_password(password)
+            user.save()
+
+            reset_token.used = True
+            reset_token.save()
+
+            return Response({"success": True})
+        except PasswordResetToken.DoesNotExist:
+            return Response({"error": "Token inválido"}, status=400)
+

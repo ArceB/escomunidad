@@ -31,6 +31,7 @@ function SlashIcon(props) {
 export default function NavBar({ showNotifications = false }) {
   const navigate = useNavigate();
   const { isAuthenticated, logout } = useAuthContext();
+  const { role } = useAuthContext();
 
   const handleLogout = async () => {
     try {
@@ -110,10 +111,15 @@ export default function NavBar({ showNotifications = false }) {
               <Building2 className="h-6 w-6" />
               <span className="sr-only">Entidades</span>
             </button>
-            <button className="flex flex-col items-center text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400">
-              <Users className="h-6 w-6" />
-              <span className="sr-only">Directorio</span>
-            </button>
+            {role === "superadmin" && (
+              <button
+                className="flex flex-col items-center text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400"
+                onClick={() => navigate("/administracion/usuarios")}
+              >
+                <Users className="h-6 w-6" />
+                <span className="sr-only">Alta de usuarios</span>
+              </button>
+            )}
           </nav>
 
           {/* Notificaciones solo si está habilitado */}
