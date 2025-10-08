@@ -73,75 +73,81 @@ const NewUserForm = () => {
 
   return (
     <Page title="Nuevo usuario">
-      <NavBar showNotifications />
+  <NavBar showNotifications />
 
-      <main className="pt-20 px-6">
-        <div className="transition-content px-(--margin-x) pb-6">
-          <div className="flex flex-col items-center justify-between space-y-4 py-5 sm:flex-row sm:space-y-0 lg:py-6">
-            <div className="flex items-center gap-1">
-              <h2 className="line-clamp-1 text-xl font-medium text-gray-700 dark:text-dark-50">
-                Nuevo Usuario
-              </h2>
-            </div>
-            <div className="flex gap-2">
-              <Button color="primary" type="submit" className="w-full mt-4">
-                Crear Usuario
-              </Button>
-            </div>
-          </div>
-
-          <form onSubmit={handleSubmit(onSubmit)} >
-            <div className="grid grid-cols-12 gap-6">
-              <div className="col-span-12 lg:col-span-8">
-                <Card className="p-4 sm:px-5 space-y-5">
-                  <Input
-                    label="Nombre"
-                    placeholder="Ingrese el nombre"
-                    {...register("first_name")}
-                    error={errors.first_name?.message}
-                  />
-
-                  <Input
-                    label="Apellido"
-                    placeholder="Ingrese el apellido"
-                    {...register("last_name")}
-                    error={errors.last_name?.message}
-                  />
-
-                  <Input
-                    label="Correo electrónico"
-                    placeholder="ejemplo@correo.com"
-                    {...register("email")}
-                    error={errors.email?.message}
-                  />
-
-                  <Controller
-                    render={({ field: { value, onChange, ...rest } }) => (
-                      <Combobox
-                        data={ROLE_OPTIONS}  
-                        displayField="label"  
-                        value={ROLE_OPTIONS.find((r) => r.value === value) || null}  
-                        onChange={(val) => onChange(val?.value)}  
-                        placeholder="Seleccione un rol"
-                        label="Rol"
-                        error={errors?.role?.message}
-                        highlight
-                        {...rest}
-                      />
-                    )}
-                    control={control}
-                    name="role"
-                  />
-
-                </Card>
-              </div>
-
-            </div>
-
-          </form>
+  <main className="pt-20 px-6">
+    <div className="transition-content px-(--margin-x) pb-6">
+      {/* Encabezado con botón arriba */}
+      <div className="flex flex-col items-center justify-between space-y-4 py-5 sm:flex-row sm:space-y-0 lg:py-6">
+        <div className="flex items-center gap-1">
+          <h2 className="line-clamp-1 text-xl font-medium text-gray-700 dark:text-dark-50">
+            Nuevo Usuario
+          </h2>
         </div>
-      </main>
-    </Page>
+        <div className="flex gap-2">
+          <Button
+            className="min-w-[7rem]"
+            color="primary"
+            type="submit"
+            form="new-user-form" // ← Esto asegura que dispare el onSubmit del form
+          >
+            Crear Usuario
+          </Button>
+        </div>
+      </div>
+
+      {/* Formulario */}
+      <form onSubmit={handleSubmit(onSubmit)} id="new-user-form">
+        <div className="grid grid-cols-12 gap-6">
+          <div className="col-span-12 lg:col-span-8">
+            <Card className="p-4 sm:px-5 space-y-5">
+              <Input
+                label="Nombre"
+                placeholder="Ingrese el nombre"
+                {...register("first_name")}
+                error={errors.first_name?.message}
+              />
+
+              <Input
+                label="Apellido"
+                placeholder="Ingrese el apellido"
+                {...register("last_name")}
+                error={errors.last_name?.message}
+              />
+
+              <Input
+                label="Correo electrónico"
+                placeholder="ejemplo@correo.com"
+                {...register("email")}
+                error={errors.email?.message}
+              />
+
+              {/* Rol */}
+              <Controller
+                render={({ field: { value, onChange, ...rest } }) => (
+                  <Combobox
+                    data={ROLE_OPTIONS}
+                    displayField="label"
+                    value={ROLE_OPTIONS.find((r) => r.value === value) || null}
+                    onChange={(val) => onChange(val?.value)}
+                    placeholder="Seleccione un rol"
+                    label="Rol"
+                    error={errors?.role?.message}
+                    highlight
+                    {...rest}
+                  />
+                )}
+                control={control}
+                name="role"
+              />
+            </Card>
+          </div>
+        </div>
+      </form>
+    </div>
+  </main>
+</Page>
+
   );
 };
 
