@@ -67,13 +67,8 @@ class EntidadViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_permissions(self):
-        # Lectura pública: list y retrieve
-        if self.action in ["list", "retrieve"]:
-            return [AllowAny()]
-        # Creación/edición/borrado sigue restringida
         user = self.request.user
-        if not user.is_authenticated:
-            return [ReadOnly()]
+
         if user.role == "superadmin":
             return [IsAuthenticated()]  # full acceso
         if user.role == "admin":
@@ -87,25 +82,17 @@ class EntidadViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
 
-        if not user.is_authenticated:
-            return Entidad.objects.all().order_by("id")
-
         if user.role == "superadmin":
             return Entidad.objects.all().order_by("id")
         if user.role == "admin":
             return Entidad.objects.filter(gestores__administrador=user).order_by("id")
         if user.role == "responsable":
-            return Entidad.objects.filter(responsable=user).order_by("id")
+            return Entidad.objects.filter(responsables__responsable=user).order_by("id")
         if user.role == "usuario":
             return user.entidades_usuario.all().order_by("id")
 
         return Entidad.objects.none()
-    
-    def perform_create(self, serializer):
-        user = self.request.user
-        if user.role not in ["admin", "superadmin"]:
-            raise PermissionDenied("No tienes permiso para crear entidades.")
-        serializer.save()
+
 
 class AnuncioViewSet(viewsets.ModelViewSet):
     serializer_class = AnuncioSerializer

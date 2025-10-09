@@ -34,47 +34,19 @@ class EntidadSerializer(serializers.ModelSerializer):
     )
     usuarios = UserSerializer(many=True, read_only=True)
 
-    administrador_id = serializers.PrimaryKeyRelatedField(
-        queryset=User.objects.filter(role="admin"),
-        source="gestores.administrador",  
-        write_only=True,
-        required=False,
-        allow_null=True
-    )
-    administrador = UserSerializer(read_only=True, source="gestores.administrador")
-
     class Meta:
         model = Entidad
         fields = [
             "id", "nombre", "correo", "telefono", "foto_portada",
             "responsable", "responsable_id",
             "usuarios", "usuarios_ids",
-            "administrador", "administrador_id",
         ]
 
     def create(self, validated_data):
-        # Lógica de creación para asignar el administrador y los usuarios
-        request = self.context.get("request")
         usuarios = validated_data.pop("usuarios", [])
-        administrador = validated_data.pop("administrador", None)
         entidad = Entidad.objects.create(**validated_data)
         if usuarios:
             entidad.usuarios.set(usuarios)
-        
-        if request.user.role == "superadmin":
-            # Si superadmin, usar el administrador seleccionado
-            if administrador:
-                GestionEntidad.objects.create(
-                    entidad=entidad,
-                    administrador=administrador
-                )
-        elif request.user.role == "admin":
-            # Si admin, asignarse a sí mismo
-            GestionEntidad.objects.create(
-                entidad=entidad,
-                administrador=request.user
-            )
-
         return entidad
 
     def update(self, instance, validated_data):
@@ -83,6 +55,7 @@ class EntidadSerializer(serializers.ModelSerializer):
         if usuarios is not None:
             instance.usuarios.set(usuarios)
         return instance
+
 
 class AnuncioSerializer(serializers.ModelSerializer):
     class Meta:

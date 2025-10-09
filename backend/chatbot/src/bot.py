@@ -17,7 +17,7 @@ from langchain_core.messages import HumanMessage, AIMessage
 # =========================
 # Configuración de OpenRouter
 # =========================
-os.environ["OPENAI_API_KEY"] = "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"  
+os.environ["OPENAI_API_KEY"] = "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"  
 os.environ["OPENAI_API_BASE"] = "https://openrouter.ai/api/v1"
 
 # =========================
