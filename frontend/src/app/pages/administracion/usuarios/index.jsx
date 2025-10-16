@@ -2,6 +2,8 @@
 
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
+import { UserIcon } from "@heroicons/react/20/solid";
+import { EnvelopeIcon } from "@heroicons/react/24/outline";
 import * as yup from "yup";
 import { toast } from "sonner";
 import axios from "utils/axios";
@@ -104,6 +106,7 @@ const NewUserForm = () => {
                   <Input
                     label="Nombre"
                     placeholder="Ingrese el nombre"
+                    prefix={<UserIcon className="size-5" />}
                     {...register("first_name")}
                     error={errors.first_name?.message}
                   />
@@ -111,6 +114,7 @@ const NewUserForm = () => {
                   <Input
                     label="Apellido"
                     placeholder="Ingrese el apellido"
+                    prefix={<UserIcon className="size-5" />}
                     {...register("last_name")}
                     error={errors.last_name?.message}
                   />
@@ -118,6 +122,7 @@ const NewUserForm = () => {
                   <Input
                     label="Correo electrónico"
                     placeholder="ejemplo@correo.com"
+                    prefix={<EnvelopeIcon className="size-5" />}
                     {...register("email")}
                     error={errors.email?.message}
                   />

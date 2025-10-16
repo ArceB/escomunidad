@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { useEffect, useState } from "react";
 import axios from "utils/axios";
 import { useAuthContext } from "app/contexts/auth/context";
-
+import { useNavigate, useParams } from "react-router";
 
 // Local Imports
 import { schema } from "./schema";
@@ -28,6 +28,11 @@ const initialState = {
 };
 
 export default function NuevaEntidadPage() {
+    const navigate = useNavigate();
+    const { id: entidadId } = useParams();
+    const [existingCover, setExistingCover] = useState(null);
+    const [entity, setEntity] = useState(null);
+
     const {
         register,
         handleSubmit,
@@ -40,6 +45,7 @@ export default function NuevaEntidadPage() {
     });
 
     const { role } = useAuthContext();
+    const { user } = useAuthContext();
     const [responsables, setResponsables] = useState([]);
     const [usuarios, setUsuarios] = useState([]);
     const [admins, setAdmins] = useState([]);  // Agrega el estado para administradores
@@ -76,12 +82,45 @@ export default function NuevaEntidadPage() {
         fetchUsers();
     }, []);
 
+    useEffect(() => {
+        if (!entidadId) return;  // Solo si estamos editando (id disponible)
+
+        const fetchEntityData = async () => {
+            try {
+                const res = await axios.get(`/entidades/${entidadId}`);
+                const entidad = res.data;
+                setEntity(entidad);
+            } catch (err) {
+                console.error("Error al cargar la entidad:", err);
+                toast.error("Error al cargar la entidad ❌");
+            }
+        };
+
+        fetchEntityData();
+    }, [entidadId]);
+
+    useEffect(() => {
+        if (!entity || admins.length === 0 || responsables.length === 0 || usuarios.length === 0) return;
+
+        reset({
+            nombre: entity.nombre || "",
+            correo: entity.correo || "",
+            telefono: entity.telefono || "",
+            responsable_id: entity.responsable_id || "",
+            usuarios: entity.usuarios_ids || [],
+            administrador_id: entity.administrador_id || "",
+        });
+
+        setExistingCover(entity.foto_portada || null);
+    }, [entity, admins, responsables, usuarios, reset]);
+
     const onSubmit = async (data) => {
         try {
             const formData = new FormData();
             formData.append("nombre", data.nombre);
             formData.append("correo", data.correo);
             formData.append("telefono", data.telefono);
+
             if (data.responsable_id) {
                 formData.append("responsable_id", data.responsable_id);
             }
@@ -97,17 +136,27 @@ export default function NuevaEntidadPage() {
             if (isSuperAdmin && data.administrador_id) {
                 formData.append("administrador_id", data.administrador_id);
             } else if (!isSuperAdmin) {
-                // Si no es superadmin, asigna al admin actual automáticamente
-                formData.append("administrador_id", /* El admin actual que hace el login */);
+                const currentAdminId = user?.id;  // Obtener el admin actual
+                formData.append("administrador_id", currentAdminId);
             }
 
-            const res = await axios.post("/entidades/", formData, {
-                headers: { "Content-Type": "multipart/form-data" },
-            });
+            if (entidadId) {
+                // Si estamos editando, hacemos un PUT
+                await axios.put(`/entidades/${entidadId}/`, formData, {
+                    headers: { "Content-Type": "multipart/form-data" },
+                });
 
-            toast.success("Entidad creada con éxito 🚀");
-            console.log("Respuesta:", res.data);
-            reset();
+                toast.success("Entidad actualizada con éxito 🚀");
+            } else {
+                // Si estamos creando, hacemos un POST
+                await axios.post("/entidades/", formData, {
+                    headers: { "Content-Type": "multipart/form-data" },
+                });
+
+                toast.success("Entidad creada con éxito 🚀");
+            }
+
+            navigate("/administracion/entidades");
         } catch (err) {
             console.error("Error al crear entidad:", err.response || err);
             toast.error("Error al crear entidad ❌");
@@ -116,7 +165,7 @@ export default function NuevaEntidadPage() {
 
 
     return (
-        <Page title="Nueva Entidad">
+        <Page title={entidadId ? "Editar Entidad" : "Nueva Entidad"}>
             <NavBar showNotifications />
 
             <main className="pt-20 px-6">
@@ -125,7 +174,7 @@ export default function NuevaEntidadPage() {
                         <div className="flex items-center gap-1">
                             <DocumentPlusIcon className="size-6" />
                             <h2 className="line-clamp-1 text-xl font-medium text-gray-700 dark:text-dark-50">
-                                Nueva Entidad
+                                {entidadId ? "Editar Entidad" : "Nueva Entidad"}
                             </h2>
                         </div>
                         <div className="flex gap-2">
@@ -135,7 +184,7 @@ export default function NuevaEntidadPage() {
                                 type="submit"
                                 form="new-entity-form"
                             >
-                                Guardar
+                                {entidadId ? "Actualizar" : "Guardar"}
                             </Button>
                         </div>
                     </div>
@@ -234,6 +283,7 @@ export default function NuevaEntidadPage() {
                                         render={({ field }) => (
                                             <CoverImageUpload
                                                 label="Foto de portada"
+                                                existingImage={existingCover}
                                                 error={errors?.cover?.message}
                                                 {...field}
                                             />

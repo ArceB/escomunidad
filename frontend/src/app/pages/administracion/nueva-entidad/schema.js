@@ -8,10 +8,14 @@ export const schema = Yup.object().shape({
     .required("El nombre es obligatorio"),
   correo: Yup.string()
     .email("Debe ser un correo válido")
-    .required("El correo es obligatorio"),
+    .nullable(),
   telefono: Yup.string()
-    .matches(/^[0-9+\s-]{7,15}$/, "Número de teléfono inválido")
-    .required("El teléfono es obligatorio"),
+    .nullable()
+    .test(
+      "telefono-valido",
+      "Número de teléfono inválido",
+      (value) => !value || /^[0-9+\s-]{7,15}$/.test(value)
+    ),
   responsable_id: Yup.string().required("Seleccione un responsable"),
   usuarios: Yup.array()
     .of(Yup.string())

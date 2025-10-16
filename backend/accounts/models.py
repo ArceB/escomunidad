@@ -30,7 +30,7 @@ class User(AbstractUser):
 # ======================================================
 class Entidad(models.Model):
     nombre = models.CharField(max_length=100)
-    correo = models.EmailField()
+    correo = models.EmailField(null=True, blank=True)
     telefono = models.CharField(max_length=20, blank=True, null=True)
     foto_portada = models.ImageField(upload_to="entidades/", default="entidades/default.webp", blank=True, null=True)
 

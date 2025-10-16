@@ -1,5 +1,5 @@
-/* eslint-disable react/no-unescaped-entities */
 import PropTypes from "prop-types";
+import {  DocumentTextIcon } from "@heroicons/react/24/outline";
 
 export function PostContent({ anuncio }) {
   return (
@@ -25,7 +25,8 @@ export function PostContent({ anuncio }) {
       )}
 
       {anuncio.archivo_pdf && (
-        <div className="mt-6">
+        <div className="mt-6 flex items-center">
+          <DocumentTextIcon className="mr-2 size-6 text-primary-600 dark:text-primary-400" /> 
           <a
             href={anuncio.archivo_pdf}
             target="_blank"

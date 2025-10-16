@@ -32,7 +32,6 @@ class EntidadSerializer(serializers.ModelSerializer):
     responsable_id = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.filter(role="responsable"),
         source="responsable",
-        write_only=True,
         required=False,
         allow_null=True
     )
@@ -42,17 +41,11 @@ class EntidadSerializer(serializers.ModelSerializer):
         queryset=User.objects.filter(role="usuario"),
         source="usuarios",
         many=True,
-        write_only=True,
         required=False
     )
     usuarios = UserSerializer(many=True, read_only=True)
 
-    administrador_id = serializers.PrimaryKeyRelatedField(
-        queryset=User.objects.filter(role="admin"),
-        source="administrador",
-        write_only=True,
-        required=False
-    )
+    administrador_id = serializers.SerializerMethodField()  # 👈 cambiamos esto
     administrador = UserSerializer(read_only=True)
 
     class Meta:
@@ -63,6 +56,11 @@ class EntidadSerializer(serializers.ModelSerializer):
             "usuarios", "usuarios_ids",
             "administrador", "administrador_id",
         ]
+
+    def get_administrador_id(self, obj):
+        # Buscar el administrador asociado desde GestionEntidad
+        gestion = GestionEntidad.objects.filter(entidad=obj).first()
+        return gestion.administrador.id if gestion else None
 
     def create(self, validated_data):
         usuarios = validated_data.pop("usuarios", [])

@@ -101,17 +101,17 @@ class EntidadViewSet(viewsets.ModelViewSet):
         user = self.request.user
 
         if user.role == "superadmin":
-            # Asigna el administrador si es superadmin
             administrador_id = self.request.data.get("administrador_id")
             if administrador_id:
                 administrador = User.objects.get(id=administrador_id)
                 entidad = serializer.save()
                 # Aseguramos que solo un administrador puede ser asignado
-                GestionEntidad.objects.create(entidad=entidad, administrador=administrador)
+                if not GestionEntidad.objects.filter(entidad=entidad, administrador=administrador).exists():
+                    GestionEntidad.objects.create(entidad=entidad, administrador=administrador)
         elif user.role == "admin":
-            # Si es admin, lo asignamos automáticamente como administrador de la entidad
             entidad = serializer.save()
-            GestionEntidad.objects.create(entidad=entidad, administrador=user)
+            if not GestionEntidad.objects.filter(entidad=entidad, administrador=user).exists():
+                GestionEntidad.objects.create(entidad=entidad, administrador=user)
         else:
             raise PermissionDenied("No tienes permiso para crear una entidad")
 
