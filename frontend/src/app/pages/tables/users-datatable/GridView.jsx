@@ -3,7 +3,6 @@ import PropTypes from "prop-types";
 import clsx from "clsx";
 import { toast } from "sonner";
 import { useCallback, useState } from "react";
-import { CheckIcon } from "@heroicons/react/24/outline";
 import {
   Menu,
   MenuButton,
@@ -16,13 +15,11 @@ import {
   EnvelopeIcon,
   EyeIcon,
   PencilIcon,
-  PhoneIcon,
   TrashIcon,
-  UserIcon,
 } from "@heroicons/react/20/solid";
 
 // Local Imports
-import { Avatar, AvatarDot, Badge, Button, Card } from "components/ui";
+import { Badge, Button, Card } from "components/ui";
 import { rolesOptions } from "./data";
 import { StyledSwitch } from "components/shared/form/StyledSwitch";
 import { ConfirmModal } from "components/shared/ConfirmModal";
@@ -36,7 +33,7 @@ export function GridView({ table, rows }) {
     <div
       className={clsx(
         "grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4",
-        enableFullScreen && "overflow-y-auto px-4 sm:px-5",
+        enableFullScreen && "overflow-y-auto px-4 sm:px-5"
       )}
     >
       {rows.map((row) => (
@@ -50,27 +47,32 @@ function Item({ row, table }) {
   const [loading, setLoading] = useState(false);
 
   const option = rolesOptions.find((item) => item.value === row.original.role);
-  const canSelect = row.getCanSelect();
+  //const canSelect = row.getCanSelect();
 
   const onChange = async (checked) => {
     setLoading(true);
     setTimeout(() => {
       table.options.meta?.updateData(row.index, "status", checked);
-      toast.success("User status updated");
+      toast.success("Estado de usuario actualizado");
       setLoading(false);
     }, 1000);
   };
 
+  const fullName = `${row.original.first_name || ""} ${row.original.last_name || ""}`.trim();
+  const email = row.original.email || "Sin correo";
+  const roleLabel = option ? option.label : row.original.role || "Sin rol";
+  const roleColor = option ? option.color : "gray";
+
   return (
     <Card
       className={clsx(
-        "px-3 py-2.5 text-center",
-        row.getIsSelected() && "ring-3 ring-primary-500/50",
+        "px-3 py-3 text-center",
+        row.getIsSelected() && "ring-3 ring-primary-500/50"
       )}
     >
       <div className="flex w-full items-center justify-between pb-5">
-        <Badge color={option.color} variant="outlined">
-          {option.label}
+        <Badge color={roleColor} variant="outlined">
+          {roleLabel}
         </Badge>
         <StyledSwitch
           checked={row.original.status}
@@ -79,68 +81,35 @@ function Item({ row, table }) {
         />
       </div>
 
-      <Avatar
-        {...{
-          "data-tooltip": true,
-          "data-tooltip-content": `${row.original.name}, ${row.original.age} y.o`,
-          onClick: canSelect ? () => row.toggleSelected() : undefined,
-          size: 18,
-          classNames: {
-            root: canSelect ? "cursor-pointer" : "cursor-not-allowed",
-            display: "text-xl",
-          },
-          component: "button",
-          src: row.original.avatar,
-          name: row.original.name,
-          initialColor: "auto",
-          indicator: (
-            <Transition
-              as={AvatarDot}
-              show={row.getIsSelected()}
-              enter="transition-all origin-bottom duration-75"
-              enterFrom="opacity-0 scale-75"
-              enterTo="opacity-100 scale-100"
-              leave="transition-all origin-bottom duration-150"
-              leaveFrom="opacity-100 scale-100"
-              leaveTo="opacity-0 scale-75"
-              color="primary"
-              className="bottom-0 right-0 flex size-6 items-center justify-center"
-            >
-              <CheckIcon className="size-3 stroke-[4px] text-white" />
-            </Transition>
-          ),
-        }}
-      />
-
       <h3 className="mt-2 text-base font-medium text-gray-800 dark:text-dark-100">
-        {row.original.name}
+        {fullName || row.original.username || "Sin nombre"}
       </h3>
-      <div className="mx-auto mt-4 inline-grid grid-cols-1 gap-3">
+
+      <div className="mx-auto mt-4 inline-grid grid-cols-1 gap-3 text-sm">
         <div className="flex min-w-0 items-center gap-2">
-          <div className="flex size-6 items-center justify-center rounded-lg bg-primary-600/10 text-primary-600 dark:bg-primary-400/10 dark:text-primary-400">
-            <PhoneIcon className="size-3.5" />
-          </div>
-          <p className="truncate"> {row.original.phone}</p>
         </div>
         <div className="flex min-w-0 items-center gap-2">
           <div className="flex size-6 items-center justify-center rounded-lg bg-primary-600/10 text-primary-600 dark:bg-primary-400/10 dark:text-primary-400">
             <EnvelopeIcon className="size-3.5" />
           </div>
-          <p className="truncate"> {row.original.email}</p>
+          <p className="truncate">{email}</p>
         </div>
+
         <Actions row={row} table={table} />
       </div>
     </Card>
   );
 }
 
+// ----------------------------------------------------------------------
+
 const confirmMessages = {
   pending: {
     description:
-      "Are you sure you want to delete this user? Once deleted, it cannot be restored.",
+      "¿Seguro que deseas eliminar este usuario? Una vez eliminado, no se puede recuperar.",
   },
   success: {
-    title: "User Deleted",
+    title: "Usuario eliminado",
   },
 };
 
@@ -150,10 +119,7 @@ function Actions({ row, table }) {
   const [deleteSuccess, setDeleteSuccess] = useState(false);
   const [deleteError, setDeleteError] = useState(false);
 
-  const closeModal = () => {
-    setDeleteModalOpen(false);
-  };
-
+  const closeModal = () => setDeleteModalOpen(false);
   const openModal = () => {
     setDeleteModalOpen(true);
     setDeleteError(false);
@@ -167,21 +133,14 @@ function Actions({ row, table }) {
       setDeleteSuccess(true);
       setConfirmDeleteLoading(false);
     }, 1000);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [row]);
+  }, [row, table]);
 
   const state = deleteError ? "error" : deleteSuccess ? "success" : "pending";
 
   return (
     <>
       <div className="flex justify-center gap-1 py-2">
-        <Button className="h-7 space-x-1.5 rounded-full px-3 text-xs">
-          <UserIcon className="size-4" />
-          <span>Proflie</span>
-        </Button>
-        <Button isIcon className="size-7 rounded-full">
-          <EnvelopeIcon className="size-4" />
-        </Button>
+        
         <Menu as="div" className="relative inline-block text-left">
           <MenuButton as={Button} isIcon className="size-7 rounded-full">
             <EllipsisHorizontalIcon className="size-4" />
@@ -202,11 +161,11 @@ function Actions({ row, table }) {
                   className={clsx(
                     "flex h-9 w-full items-center gap-3 px-3 tracking-wide outline-hidden transition-colors",
                     focus &&
-                      "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
+                      "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100"
                   )}
                 >
                   <EyeIcon className="size-4.5 stroke-1" />
-                  <span>View</span>
+                  <span>Ver</span>
                 </button>
               )}
             </MenuItem>
@@ -216,11 +175,11 @@ function Actions({ row, table }) {
                   className={clsx(
                     "flex h-9 w-full items-center gap-3 px-3 tracking-wide outline-hidden transition-colors",
                     focus &&
-                      "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
+                      "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100"
                   )}
                 >
                   <PencilIcon className="size-4.5 stroke-1" />
-                  <span>Edit</span>
+                  <span>Editar</span>
                 </button>
               )}
             </MenuItem>
@@ -229,12 +188,12 @@ function Actions({ row, table }) {
                 <button
                   onClick={openModal}
                   className={clsx(
-                    "this:error flex h-9 w-full items-center gap-3 px-3 tracking-wide text-this outline-hidden transition-colors dark:text-this-light",
-                    focus && "bg-this/10 dark:bg-this-light/10",
+                    "text-red-600 dark:text-red-400 flex h-9 w-full items-center gap-3 px-3 tracking-wide outline-hidden transition-colors",
+                    focus && "bg-red-50 dark:bg-red-900/20"
                   )}
                 >
                   <TrashIcon className="size-4.5 stroke-1" />
-                  <span>Delete</span>
+                  <span>Eliminar</span>
                 </button>
               )}
             </MenuItem>
@@ -253,6 +212,8 @@ function Actions({ row, table }) {
     </>
   );
 }
+
+// ----------------------------------------------------------------------
 
 GridView.propTypes = {
   table: PropTypes.object,

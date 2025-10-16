@@ -310,13 +310,6 @@ const protectedRoutes = {
               }),
             },
             {
-              path: "users-datatable",
-              lazy: async () => ({
-                Component: (await import("app/pages/tables/users-datatable"))
-                  .default,
-              }),
-            },
-            {
               path: "projects-datatable",
               lazy: async () => ({
                 Component: (await import("app/pages/tables/projects-datatable"))
@@ -962,11 +955,44 @@ const protectedRoutes = {
     {
       path: "administracion",
       children: [
+        /**
+         * {
+          path: "nueva-entidad",
+          element: <AdminGuard />,
+          children: [
+            {
+              index: true,
+              lazy: async () => ({
+                Component: (await import("app/pages/administracion/nueva-entidad")).default,
+              }),
+            },
+          ],
+        },
+         */
         {
-          path: "usuarios",
-          lazy: async () => ({
-            Component: (await import("app/pages/administracion/usuarios")).default,
-          }),
+          path: "users-datatable",
+          element: <AdminGuard />,
+          children: [
+            {
+              index: true,
+              lazy: async () => ({
+                Component: (await import("app/pages/tables/users-datatable"))
+                  .default,
+              }),
+            }
+          ]
+        },
+        {
+          path: "nuevo-usuario",
+          element: <AdminGuard />,
+          children: [
+            {
+              index: true,
+              lazy: async () => ({
+                Component: (await import("app/pages/administracion/usuarios")).default,
+              }),
+            }
+          ]
         },
         {
           path: "entidades",

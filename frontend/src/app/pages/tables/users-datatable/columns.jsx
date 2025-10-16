@@ -2,16 +2,18 @@
 import { createColumnHelper } from "@tanstack/react-table";
 
 // Local Imports
-import { CopyableCell } from "components/shared/table/CopyableCell";
+/*import { CopyableCell } from "components/shared/table/CopyableCell";
 import { NameCell, RoleCell, StatusCell } from "./rows";
 import { RowActions } from "./RowActions";
-import { HighlightableCell } from "components/shared/table/HighlightableCell";
+import { HighlightableCell } from "components/shared/table/HighlightableCell";*/
+import { EntitiesCell, NameCell, RoleCell, LastNameCell } from "./rows";
+
 
 // ----------------------------------------------------------------------
 
 const columnHelper = createColumnHelper();
 
-export const columns = [
+/*export const columns = [
   columnHelper.accessor((row) => row.status, {
     id: "status",
     header: "Stat",
@@ -55,4 +57,35 @@ export const columns = [
     label: "Row Actions",
     cell: RowActions,
   }),
+];*/
+
+export const columns = [
+  columnHelper.accessor("first_name", {
+    id: "first_name", 
+    header: "Nombre",
+    cell: NameCell,
+  }),
+  columnHelper.accessor("last_name", {
+    id: "last_name",
+    header: "Apellido",
+    cell: LastNameCell,
+  }),
+  columnHelper.accessor("email", {
+    id: "email",
+    header: "Correo",
+  }),
+  columnHelper.accessor("role", {
+    id: "role",
+    header: "Rol",
+    cell: RoleCell,
+  }),
+  columnHelper.accessor("entidades", {
+    id: "entidades",
+    header: "Entidades",
+    cell: EntitiesCell,
+  }),
 ];
+
+
+
+

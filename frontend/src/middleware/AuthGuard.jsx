@@ -32,5 +32,5 @@ import { useOutlet } from "react-router";
 
 export default function AuthGuard() {
   const outlet = useOutlet();
-  return <>{outlet}</>; // 🔓 siempre deja pasar, no revisa login
+  return <>{outlet}</>; 
 }

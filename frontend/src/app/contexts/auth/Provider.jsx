@@ -4,7 +4,7 @@ import PropTypes from "prop-types";
 
 // Local Imports
 import axios from "utils/axios";
-import { setSession } from "utils/jwt";
+import { setSession,  isTokenValid  } from "utils/jwt";
 import { AuthContext } from "./context";
 
 // ----------------------------------------------------------------------
@@ -69,47 +69,45 @@ export function AuthProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, initialState);
 
   useEffect(() => {
-    const authToken = sessionStorage.getItem("authToken");
-    const lastActivity = sessionStorage.getItem("lastActivity");
+  const authToken = sessionStorage.getItem("authToken");
+  const lastActivity = sessionStorage.getItem("lastActivity");
 
-    if (authToken && lastActivity) {
-      const elapsed = Date.now() - parseInt(lastActivity, 10);
+  if (authToken && isTokenValid(authToken) && lastActivity) {
+    const elapsed = Date.now() - parseInt(lastActivity, 10);
 
-      if (elapsed < SESSION_DURATION) {
-        // Reinyectar token en axios
-        setSession(authToken);
+    if (elapsed < SESSION_DURATION) {
+      setSession(authToken);
 
-        // Reprogramar cierre automático
-        if (logoutTimer) clearTimeout(logoutTimer);
-        logoutTimer = setTimeout(() => logout(), SESSION_DURATION - elapsed);
+      if (logoutTimer) clearTimeout(logoutTimer);
+      logoutTimer = setTimeout(() => logout(), SESSION_DURATION - elapsed);
 
-        // Decodificar token para reconstruir usuario
-        const payload = JSON.parse(atob(authToken.split(".")[1]));
-        const role = payload.role || "usuario";
-        const user = {
-          id: payload.user_id,
-          username: payload.username,
-          entidad_id: payload.entidad_id ?? null,
-        };
+      const payload = JSON.parse(atob(authToken.split(".")[1]));
+      const role = payload.role || "usuario";
+      const user = {
+        id: payload.user_id,
+        username: payload.username,
+        entidad_id: payload.entidad_id ?? null,
+      };
 
-        // Actualizar la hora de última actividad al refrescar
-        sessionStorage.setItem("lastActivity", Date.now());
+      sessionStorage.setItem("lastActivity", Date.now());
 
-        dispatch({
-          type: "INITIALIZE",
-          payload: { isAuthenticated: true, user, role },
-        });
-        return;
-      } else {
-        logout();
-      }
+      dispatch({
+        type: "INITIALIZE",
+        payload: { isAuthenticated: true, user, role },
+      });
+      return;
+    } else {
+      logout();
     }
+  } else {
+    logout(); // 👈 limpia todo si el token ya expiró
+  }
 
-    dispatch({
-      type: "INITIALIZE",
-      payload: { isAuthenticated: false, user: null, role: null },
-    });
-  }, []);
+  dispatch({
+    type: "INITIALIZE",
+    payload: { isAuthenticated: false, user: null, role: null },
+  });
+}, []);
 
   // 🔥 Login contra Django SimpleJWT
   const login = async ({ username, password }) => {

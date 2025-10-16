@@ -67,31 +67,53 @@ class EntidadViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_permissions(self):
+        if self.action == 'list':  # Para 'list' (GET) permitimos acceso público
+            return [AllowAny()]
+        
         user = self.request.user
-
-        if user.role == "superadmin":
-            return [IsAuthenticated()]  # full acceso
-        if user.role == "admin":
-            return [IsAdmin()]
-        if user.role == "responsable":
-            return [IsResponsable()]
-        if user.role == "usuario":
-            return [ReadOnly()]
-        return [ReadOnly()]
+        if user.is_authenticated:
+            if user.role == "superadmin":
+                return [IsAuthenticated()]  # full acceso
+            if user.role == "admin":
+                return [IsAdmin()]
+            if user.role == "responsable":
+                return [IsResponsable()]
+            if user.role == "usuario":
+                return [ReadOnly()]
+        return [IsAuthenticated()]
 
     def get_queryset(self):
         user = self.request.user
 
-        if user.role == "superadmin":
+        if user.is_authenticated:
+            if user.role == "superadmin":
+                return Entidad.objects.all().order_by("id")
+            if user.role == "admin":
+                return Entidad.objects.filter(gestores__administrador=user).order_by("id")
+            if user.role == "responsable":
+                return Entidad.objects.filter(responsables__responsable=user).order_by("id")
+            if user.role == "usuario":
+                return user.entidades_usuario.all().order_by("id")
+        else:
             return Entidad.objects.all().order_by("id")
-        if user.role == "admin":
-            return Entidad.objects.filter(gestores__administrador=user).order_by("id")
-        if user.role == "responsable":
-            return Entidad.objects.filter(responsables__responsable=user).order_by("id")
-        if user.role == "usuario":
-            return user.entidades_usuario.all().order_by("id")
+    
+    def perform_create(self, serializer):
+        user = self.request.user
 
-        return Entidad.objects.none()
+        if user.role == "superadmin":
+            # Asigna el administrador si es superadmin
+            administrador_id = self.request.data.get("administrador_id")
+            if administrador_id:
+                administrador = User.objects.get(id=administrador_id)
+                entidad = serializer.save()
+                # Aseguramos que solo un administrador puede ser asignado
+                GestionEntidad.objects.create(entidad=entidad, administrador=administrador)
+        elif user.role == "admin":
+            # Si es admin, lo asignamos automáticamente como administrador de la entidad
+            entidad = serializer.save()
+            GestionEntidad.objects.create(entidad=entidad, administrador=user)
+        else:
+            raise PermissionDenied("No tienes permiso para crear una entidad")
 
 
 class AnuncioViewSet(viewsets.ModelViewSet):

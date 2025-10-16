@@ -114,10 +114,10 @@ export default function NavBar({ showNotifications = false }) {
             {role === "superadmin" && (
               <button
                 className="flex flex-col items-center text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400"
-                onClick={() => navigate("/administracion/usuarios")}
+                onClick={() => navigate("/administracion/users-datatable")}
               >
                 <Users className="h-6 w-6" />
-                <span className="sr-only">Alta de usuarios</span>
+                <span className="sr-only">Usuarios</span>
               </button>
             )}
           </nav>

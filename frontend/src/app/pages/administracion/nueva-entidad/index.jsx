@@ -5,6 +5,7 @@ import { DocumentPlusIcon } from "@heroicons/react/24/outline";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
 import axios from "utils/axios";
+import { useAuthContext } from "app/contexts/auth/context";
 
 
 // Local Imports
@@ -38,9 +39,21 @@ export default function NuevaEntidadPage() {
         defaultValues: initialState,
     });
 
-
+    const { role } = useAuthContext();
     const [responsables, setResponsables] = useState([]);
     const [usuarios, setUsuarios] = useState([]);
+    const [admins, setAdmins] = useState([]);  // Agrega el estado para administradores
+    const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+
+    //console.log(user?.role); 
+
+    useEffect(() => {
+        if (role === "superadmin") {
+            setIsSuperAdmin(true);
+        } else {
+            setIsSuperAdmin(false);
+        }
+    }, [role]);
 
     useEffect(() => {
         const fetchUsers = async () => {
@@ -50,6 +63,11 @@ export default function NuevaEntidadPage() {
 
                 const resUsers = await axios.get("/users/?role=usuario");
                 setUsuarios(resUsers.data);
+
+                const resAdmins = await axios.get("/users/?role=admin");  // Asegúrate de que el endpoint esté correcto
+                console.log("Administradores:", resAdmins.data);  // Verifica la respuesta en la consola
+                setAdmins(resAdmins.data);
+
             } catch (err) {
                 console.error("Error cargando usuarios:", err);
             }
@@ -74,6 +92,13 @@ export default function NuevaEntidadPage() {
             }
             if (data.cover) {
                 formData.append("foto_portada", data.cover);
+            }
+
+            if (isSuperAdmin && data.administrador_id) {
+                formData.append("administrador_id", data.administrador_id);
+            } else if (!isSuperAdmin) {
+                // Si no es superadmin, asigna al admin actual automáticamente
+                formData.append("administrador_id", /* El admin actual que hace el login */);
             }
 
             const res = await axios.post("/entidades/", formData, {
@@ -143,6 +168,27 @@ export default function NuevaEntidadPage() {
                                         {...register("telefono")}
                                         error={errors?.telefono?.message}
                                     />
+
+                                    {/* Mostrar campo de administrador solo si es superadmin */}
+                                    {isSuperAdmin && (
+                                        <Controller
+                                            render={({ field: { value, onChange, ...rest } }) => (
+                                                <Combobox
+                                                    data={admins}  // Usa el estado admins que ahora tiene los administradores
+                                                    displayField="username"  // Asegúrate de que 'username' es el campo que quieres mostrar
+                                                    value={admins.find((u) => u.id === value) || null}
+                                                    onChange={(val) => onChange(val?.id)}
+                                                    placeholder="Seleccione Administrador"
+                                                    label="Administrador"
+                                                    error={errors?.administrador_id?.message}
+                                                    highlight
+                                                    {...rest}
+                                                />
+                                            )}
+                                            control={control}
+                                            name="administrador_id"
+                                        />
+                                    )}
 
                                     {/* Responsable */}
                                     <Controller

@@ -1,10 +1,8 @@
 // Import Dependencies
 import {
-  ChevronUpDownIcon,
   MagnifyingGlassIcon,
-  PrinterIcon,
 } from "@heroicons/react/24/outline";
-import { TbGridDots, TbList, TbUpload } from "react-icons/tb";
+import { TbGridDots, TbList } from "react-icons/tb";
 import clsx from "clsx";
 import {
   Menu,
@@ -15,6 +13,8 @@ import {
 } from "@headlessui/react";
 import { EllipsisHorizontalIcon } from "@heroicons/react/20/solid";
 import PropTypes from "prop-types";
+import { useNavigate } from "react-router";
+
 
 // Local Imports
 import { Button, Input } from "components/ui";
@@ -29,6 +29,8 @@ import { RoleFilter } from "./RoleFilter";
 export function Toolbar({ table }) {
   const { isXs } = useBreakpointsContext();
   const isFullScreenEnabled = table.getState().tableSettings.enableFullScreen;
+  const navigate = useNavigate();
+
 
   return (
     <div className="table-toolbar">
@@ -40,7 +42,7 @@ export function Toolbar({ table }) {
       >
         <div className="min-w-0">
           <h2 className="truncate text-xl font-medium tracking-wide text-gray-800 dark:text-dark-50">
-            Users Table
+            Tabla de Usuarios
           </h2>
         </div>
         {isXs ? (
@@ -68,7 +70,7 @@ export function Toolbar({ table }) {
                     className={clsx(
                       "flex h-9 w-full items-center px-3 tracking-wide outline-hidden transition-colors",
                       focus &&
-                        "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
+                      "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
                     )}
                   >
                     <span>New Order</span>
@@ -81,26 +83,13 @@ export function Toolbar({ table }) {
                     className={clsx(
                       "flex h-9 w-full items-center px-3 tracking-wide outline-hidden transition-colors",
                       focus &&
-                        "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
+                      "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
                     )}
                   >
                     <span>Share</span>
                   </button>
                 )}
               </MenuItem>
-              <MenuItem>
-                {({ focus }) => (
-                  <button
-                    className={clsx(
-                      "flex h-9 w-full items-center px-3 tracking-wide outline-hidden transition-colors",
-                      focus &&
-                        "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
-                    )}
-                  >
-                    <span>Print</span>
-                  </button>
-                )}
-              </MenuItem>
               <hr className="mx-3 my-1.5 h-px border-gray-150 dark:border-dark-500" />
               <MenuItem>
                 {({ focus }) => (
@@ -108,47 +97,21 @@ export function Toolbar({ table }) {
                     className={clsx(
                       "flex h-9 w-full items-center px-3 tracking-wide outline-hidden transition-colors",
                       focus &&
-                        "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
+                      "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
                     )}
                   >
                     <span>Import Orders</span>
                   </button>
                 )}
               </MenuItem>
-              <hr className="mx-3 my-1.5 h-px border-gray-150 dark:border-dark-500" />
+
               <MenuItem>
                 {({ focus }) => (
                   <button
                     className={clsx(
                       "flex h-9 w-full items-center px-3 tracking-wide outline-hidden transition-colors",
                       focus &&
-                        "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
-                    )}
-                  >
-                    <span>Export as PDF</span>
-                  </button>
-                )}
-              </MenuItem>
-              <MenuItem>
-                {({ focus }) => (
-                  <button
-                    className={clsx(
-                      "flex h-9 w-full items-center px-3 tracking-wide outline-hidden transition-colors",
-                      focus &&
-                        "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
-                    )}
-                  >
-                    <span>Export as CSV</span>
-                  </button>
-                )}
-              </MenuItem>
-              <MenuItem>
-                {({ focus }) => (
-                  <button
-                    className={clsx(
-                      "flex h-9 w-full items-center px-3 tracking-wide outline-hidden transition-colors",
-                      focus &&
-                        "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
+                      "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
                     )}
                   >
                     <span>Save Table as View</span>
@@ -159,27 +122,11 @@ export function Toolbar({ table }) {
           </Menu>
         ) : (
           <div className="flex space-x-2 ">
-            <Button
-              variant="outlined"
-              className="h-8 space-x-2 rounded-md px-3 text-xs "
-            >
-              <PrinterIcon className="size-4" />
-              <span>Print</span>
-            </Button>
 
             <Menu
               as="div"
               className="relative inline-block whitespace-nowrap text-left"
             >
-              <MenuButton
-                as={Button}
-                variant="outlined"
-                className="h-8 space-x-2 rounded-md px-3 text-xs "
-              >
-                <TbUpload className="size-4" />
-                <span>Export</span>
-                <ChevronUpDownIcon className="size-4" />
-              </MenuButton>
               <Transition
                 as={MenuItems}
                 enter="transition ease-out"
@@ -196,7 +143,7 @@ export function Toolbar({ table }) {
                       className={clsx(
                         "flex h-9 w-full items-center px-3 tracking-wide outline-hidden transition-colors",
                         focus &&
-                          "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
+                        "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
                       )}
                     >
                       <span>Export as PDF</span>
@@ -209,7 +156,7 @@ export function Toolbar({ table }) {
                       className={clsx(
                         "flex h-9 w-full items-center px-3 tracking-wide outline-hidden transition-colors",
                         focus &&
-                          "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
+                        "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
                       )}
                     >
                       <span>Export as CSV</span>
@@ -243,57 +190,19 @@ export function Toolbar({ table }) {
                 <MenuItem>
                   {({ focus }) => (
                     <button
+                      onClick={() => navigate("/administracion/nuevo-usuario")} // 👈 redirección
                       className={clsx(
                         "flex h-9 w-full items-center px-3 tracking-wide outline-hidden transition-colors",
                         focus &&
-                          "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
+                        "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100"
                       )}
                     >
-                      <span>New User</span>
+                      <span>Nuevo Usuario</span>
                     </button>
                   )}
                 </MenuItem>
-                <MenuItem>
-                  {({ focus }) => (
-                    <button
-                      className={clsx(
-                        "flex h-9 w-full items-center px-3 tracking-wide outline-hidden transition-colors",
-                        focus &&
-                          "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
-                      )}
-                    >
-                      <span>Share Users</span>
-                    </button>
-                  )}
-                </MenuItem>
-                <hr className="mx-3 my-1.5 h-px border-gray-150 dark:border-dark-500" />
-                <MenuItem>
-                  {({ focus }) => (
-                    <button
-                      className={clsx(
-                        "flex h-9 w-full items-center px-3 tracking-wide outline-hidden transition-colors",
-                        focus &&
-                          "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
-                      )}
-                    >
-                      <span>Import Users</span>
-                    </button>
-                  )}
-                </MenuItem>
-                <hr className="mx-3 my-1.5 h-px border-gray-150 dark:border-dark-500" />
-                <MenuItem>
-                  {({ focus }) => (
-                    <button
-                      className={clsx(
-                        "flex h-9 w-full items-center px-3 tracking-wide outline-hidden transition-colors",
-                        focus &&
-                          "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
-                      )}
-                    >
-                      <span>Save Table as View</span>
-                    </button>
-                  )}
-                </MenuItem>
+
+
               </Transition>
             </Menu>
           </div>
@@ -366,7 +275,7 @@ function SearchInput({ table }) {
         root: "shrink-0",
         input: "text-xs ring-primary-500/50 focus:ring-3",
       }}
-      placeholder="Search Course, Category..."
+      placeholder="Buscar..."
     />
   );
 }

@@ -17,7 +17,7 @@ export function TableConfig({ table }) {
       buttonContent={
         <>
           <ViewColumnsIcon className="size-4" />
-          <span>View</span>
+          <span>Vista</span>
         </>
       }
       classNames={{
@@ -27,12 +27,12 @@ export function TableConfig({ table }) {
       {smAndDown ? (
         <div className="mx-auto flex h-12 w-full shrink-0 items-center justify-between border-b border-gray-200 px-3 dark:border-dark-500">
           <p className="truncate text-start text-base font-medium text-gray-800 dark:text-dark-50">
-            Table View
+            Vista de la tabla
           </p>
         </div>
       ) : (
         <h3 className="px-3 pt-2.5 text-sm-plus font-medium tracking-wide text-gray-800 dark:text-dark-100">
-          Table View
+          Vista de la tabla
         </h3>
       )}
 

@@ -54,6 +54,9 @@ const Avatar = forwardRef((props, ref) => {
     if (initialColor === "auto") {
       resolvedColor = colorFromText(chars);
     }
+    if (!resolvedColor || resolvedColor === "auto") {
+      resolvedColor = "neutral"; // color seguro por defecto
+    }
   }
 
   return (

@@ -8,9 +8,22 @@ from .models import (
 
 # Usuario público (sin campos sensibles)
 class UserSerializer(serializers.ModelSerializer):
+    entidades = serializers.SerializerMethodField()
     class Meta:
         model = User
-        fields = ["id", "username", "email", "role", "entidad"]
+        fields = ["id", "username", "email", "role", "entidad", "entidades", "first_name", "last_name"]
+
+    def get_entidades(self, obj):
+        # entidades donde es usuario
+        entidades_usuario = obj.entidades_usuario.all().values_list("nombre", flat=True)
+        # entidades donde es responsable
+        entidades_responsable = obj.entidad_responsable.all().values_list("nombre", flat=True)
+        # entidades donde es admin
+        entidades_admin = obj.gestionentidad_set.all().values_list("entidad__nombre", flat=True)
+
+        # Unimos todo y quitamos duplicados
+        nombres = set(entidades_usuario) | set(entidades_responsable) | set(entidades_admin)
+        return list(nombres)
 
 
 class EntidadSerializer(serializers.ModelSerializer):
@@ -34,26 +47,43 @@ class EntidadSerializer(serializers.ModelSerializer):
     )
     usuarios = UserSerializer(many=True, read_only=True)
 
+    administrador_id = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.filter(role="admin"),
+        source="administrador",
+        write_only=True,
+        required=False
+    )
+    administrador = UserSerializer(read_only=True)
+
     class Meta:
         model = Entidad
         fields = [
             "id", "nombre", "correo", "telefono", "foto_portada",
             "responsable", "responsable_id",
             "usuarios", "usuarios_ids",
+            "administrador", "administrador_id",
         ]
 
     def create(self, validated_data):
         usuarios = validated_data.pop("usuarios", [])
+        administrador = validated_data.pop("administrador", None)
         entidad = Entidad.objects.create(**validated_data)
         if usuarios:
             entidad.usuarios.set(usuarios)
+        if administrador:
+            GestionEntidad.objects.create(entidad=entidad, administrador=administrador)
+        entidad.save()
         return entidad
 
     def update(self, instance, validated_data):
         usuarios = validated_data.pop("usuarios", None)
+        administrador = validated_data.pop("administrador", None)
         instance = super().update(instance, validated_data)
         if usuarios is not None:
             instance.usuarios.set(usuarios)
+        if administrador:
+            GestionEntidad.objects.update_or_create(entidad=instance, defaults={"administrador": administrador})
+        instance.save()
         return instance
 
 

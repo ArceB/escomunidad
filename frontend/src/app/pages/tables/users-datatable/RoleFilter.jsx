@@ -34,7 +34,7 @@ export function RoleFilter({ column, options }) {
           orientation: "horizontal",
         })}
       >
-        All
+        Todos
       </Button>
       {options.map((option) => (
         <Button

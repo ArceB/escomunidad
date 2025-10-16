@@ -10,9 +10,11 @@ import {
   flexRender,
 } from "@tanstack/react-table";
 import clsx from "clsx";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
 
 // Local Imports
+import axios from "utils/axios";
 import { Page } from "components/shared/Page";
 import { Box, Card } from "components/ui";
 import { useLockScrollbar, useDidUpdate, useLocalStorage } from "hooks";
@@ -20,16 +22,37 @@ import { fuzzyFilter } from "utils/react-table/fuzzyFilter";
 import { useSkipper } from "utils/react-table/useSkipper";
 import { Toolbar } from "./Toolbar";
 import { columns } from "./columns";
-import { usersList } from "./data";
 import { PaginationSection } from "components/shared/table/PaginationSection";
 import { SelectedRowsActions } from "./SelectedRowsActions";
 import { ListView } from "./ListView";
 import { GridView } from "./GridView";
+import NavBar from "app/layouts/MainLayout/NavBar";
 
 // ----------------------------------------------------------------------
 
 export default function UsersDatatable() {
-  const [users, setUsers] = useState([...usersList]);
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+  const fetchUsers = async () => {
+    try {
+      const response = await axios.get("http://localhost:8000/api/users/");
+      console.log("Usuarios desde API:", response.data);
+
+      // 🔥 Filtramos los que NO sean superadmin
+      const filtered = response.data.filter(user => user.role !== "superadmin");
+
+      setUsers(filtered);
+    } catch (error) {
+      console.error("Error cargando usuarios:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  fetchUsers();
+}, []);
+
 
   const [tableSettings, setTableSettings] = useState({
     enableFullScreen: false,
@@ -37,22 +60,21 @@ export default function UsersDatatable() {
   });
 
   const [globalFilter, setGlobalFilter] = useState("");
-
   const [sorting, setSorting] = useState([]);
 
   const [viewType, setViewType] = useLocalStorage(
     "users-table-view-type",
-    "list",
+    "list"
   );
 
   const [columnVisibility, setColumnVisibility] = useLocalStorage(
     "column-visibility-users",
-    {},
+    {}
   );
 
   const [columnPinning, setColumnPinning] = useLocalStorage(
     "column-pinning-users",
-    {},
+    {}
   );
 
   const [autoResetPageIndex, skipAutoResetPageIndex] = useSkipper();
@@ -75,7 +97,6 @@ export default function UsersDatatable() {
     },
     meta: {
       updateData: (rowIndex, columnId, value) => {
-        // Skip page index reset until after next rerender
         skipAutoResetPageIndex();
         setUsers((old) =>
           old.map((row, index) => {
@@ -86,18 +107,16 @@ export default function UsersDatatable() {
               };
             }
             return row;
-          }),
+          })
         );
       },
       deleteRow: (row) => {
-        // Skip page index reset until after next rerender
         skipAutoResetPageIndex();
         setUsers((old) =>
-          old.filter((oldRow) => oldRow.user_id !== row.original.user_id),
+          old.filter((oldRow) => oldRow.user_id !== row.original.user_id)
         );
       },
       deleteRows: (rows) => {
-        // Skip page index reset until after next rerender
         skipAutoResetPageIndex();
         const rowIds = rows.map((row) => row.original.user_id);
         setUsers((old) => old.filter((row) => !rowIds.includes(row.user_id)));
@@ -118,78 +137,90 @@ export default function UsersDatatable() {
     globalFilterFn: fuzzyFilter,
     onSortingChange: setSorting,
     getSortedRowModel: getSortedRowModel(),
-
     getPaginationRowModel: getPaginationRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     onColumnPinningChange: setColumnPinning,
-
     autoResetPageIndex,
   });
 
   useDidUpdate(() => table.resetRowSelection(), [users]);
-
   useLockScrollbar(tableSettings.enableFullScreen);
 
   const rows = table.getRowModel().rows;
-
   const WrapComponent = viewType === "list" ? Card : Box;
+
+  if (loading) {
+    return (
+      <Page title="Users Datatable">
+        <div className="flex h-screen items-center justify-center text-gray-600 dark:text-gray-300">
+          Cargando usuarios...
+        </div>
+      </Page>
+    );
+  }
 
   return (
     <Page title="Users Datatable">
-      <div className="transition-content w-full pb-5">
-        <div
-          className={clsx(
-            "flex h-full w-full flex-col",
-            tableSettings.enableFullScreen &&
-              "fixed inset-0 z-61 bg-white pt-3 dark:bg-dark-900",
-          )}
-        >
-          <Toolbar table={table} />
+      <NavBar showNotifications />
+      <main className="pt-20 px-6">
+        <div className="transition-content w-full pb-5">
           <div
             className={clsx(
-              "transition-content flex grow flex-col pt-3",
-              tableSettings.enableFullScreen
-                ? "overflow-hidden"
-                : "px-(--margin-x)",
+              "flex h-full w-full flex-col",
+              tableSettings.enableFullScreen &&
+              "fixed inset-0 z-61 bg-white pt-3 dark:bg-dark-900"
             )}
           >
-            <WrapComponent
+            <Toolbar table={table} />
+            <div
               className={clsx(
-                "relative flex grow flex-col",
-                tableSettings.enableFullScreen && "overflow-hidden",
+                "transition-content flex grow flex-col pt-3",
+                tableSettings.enableFullScreen
+                  ? "overflow-hidden"
+                  : "px-(--margin-x)"
               )}
             >
-              {viewType === "list" && (
-                <ListView table={table} flexRender={flexRender} rows={rows} />
-              )}
+              <WrapComponent
+                className={clsx(
+                  "relative flex grow flex-col",
+                  tableSettings.enableFullScreen && "overflow-hidden"
+                )}
+              >
+                {viewType === "list" && (
+                  <ListView table={table} flexRender={flexRender} rows={rows} />
+                )}
 
-              {viewType === "grid" && <GridView table={table} rows={rows} />}
+                {viewType === "grid" && <GridView table={table} rows={rows} />}
 
-              {table.getCoreRowModel().rows.length && (
-                <div
-                  className={clsx(
-                    "pb-4 sm:pt-4",
-                    (viewType === "list" || tableSettings.enableFullScreen) &&
+                {table.getCoreRowModel().rows.length > 0 && (
+                  <div
+                    className={clsx(
+                      "pb-4 sm:pt-4",
+                      (viewType === "list" || tableSettings.enableFullScreen) &&
                       "px-4 sm:px-5",
-                    tableSettings.enableFullScreen &&
+                      tableSettings.enableFullScreen &&
                       "bg-gray-50 dark:bg-dark-800",
-                    !(
-                      table.getIsSomeRowsSelected() ||
-                      table.getIsAllRowsSelected()
-                    ) && "pt-4",
-                    viewType === "grid" &&
+                      !(
+                        table.getIsSomeRowsSelected() ||
+                        table.getIsAllRowsSelected()
+                      ) && "pt-4",
+                      viewType === "grid" &&
                       !tableSettings.enableFullScreen &&
-                      "mt-3",
-                  )}
-                >
-                  <PaginationSection table={table} />
-                </div>
-              )}
-            </WrapComponent>
-            <SelectedRowsActions table={table} />
+                      "mt-3"
+                    )}
+                  >
+                    <PaginationSection table={table} />
+                  </div>
+                )}
+              </WrapComponent>
+              <SelectedRowsActions table={table} />
+            </div>
           </div>
         </div>
-      </div>
+      </main>
+
+
+
     </Page>
   );
 }

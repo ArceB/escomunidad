@@ -9,7 +9,6 @@ import {
 import { EllipsisHorizontalIcon } from "@heroicons/react/20/solid";
 import {
   ArrowUpTrayIcon,
-  PrinterIcon,
   TrashIcon,
 } from "@heroicons/react/24/outline";
 import clsx from "clsx";
@@ -77,10 +76,6 @@ export function SelectedRowsActions({ table }) {
                   <TrashIcon className="size-4 shrink-0" />
                 )}
                 <span className="max-sm:hidden">Delete</span>
-              </Button>
-              <Button className="w-7 space-x-1.5 rounded-full px-3 py-1.5 text-xs-plus sm:w-auto sm:rounded-sm ">
-                <PrinterIcon className="size-4 shrink-0" />
-                <span className="max-sm:hidden">Print</span>
               </Button>
               <Menu as="div" className="relative inline-block text-left">
                 <MenuButton
