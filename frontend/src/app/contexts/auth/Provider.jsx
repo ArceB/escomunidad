@@ -4,7 +4,7 @@ import PropTypes from "prop-types";
 
 // Local Imports
 import axios from "utils/axios";
-import { setSession,  isTokenValid  } from "utils/jwt";
+import { setSession, isTokenValid } from "utils/jwt";
 import { AuthContext } from "./context";
 
 // ----------------------------------------------------------------------
@@ -69,45 +69,45 @@ export function AuthProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, initialState);
 
   useEffect(() => {
-  const authToken = sessionStorage.getItem("authToken");
-  const lastActivity = sessionStorage.getItem("lastActivity");
+    const authToken = sessionStorage.getItem("authToken");
+    const lastActivity = sessionStorage.getItem("lastActivity");
 
-  if (authToken && isTokenValid(authToken) && lastActivity) {
-    const elapsed = Date.now() - parseInt(lastActivity, 10);
+    if (authToken && isTokenValid(authToken) && lastActivity) {
+      const elapsed = Date.now() - parseInt(lastActivity, 10);
 
-    if (elapsed < SESSION_DURATION) {
-      setSession(authToken);
+      if (elapsed < SESSION_DURATION) {
+        setSession(authToken);
 
-      if (logoutTimer) clearTimeout(logoutTimer);
-      logoutTimer = setTimeout(() => logout(), SESSION_DURATION - elapsed);
+        if (logoutTimer) clearTimeout(logoutTimer);
+        logoutTimer = setTimeout(() => logout(), SESSION_DURATION - elapsed);
 
-      const payload = JSON.parse(atob(authToken.split(".")[1]));
-      const role = payload.role || "usuario";
-      const user = {
-        id: payload.user_id,
-        username: payload.username,
-        entidad_id: payload.entidad_id ?? null,
-      };
+        const payload = JSON.parse(atob(authToken.split(".")[1]));
+        const role = payload.role || "usuario";
+        const user = {
+          id: payload.user_id,
+          username: payload.username,
+          entidad_id: payload.entidad_id ?? null,
+        };
 
-      sessionStorage.setItem("lastActivity", Date.now());
+        sessionStorage.setItem("lastActivity", Date.now());
 
-      dispatch({
-        type: "INITIALIZE",
-        payload: { isAuthenticated: true, user, role },
-      });
-      return;
+        dispatch({
+          type: "INITIALIZE",
+          payload: { isAuthenticated: true, user, role },
+        });
+        return;
+      } else {
+        logout();
+      }
     } else {
-      logout();
+      logout(); // 👈 limpia todo si el token ya expiró
     }
-  } else {
-    logout(); // 👈 limpia todo si el token ya expiró
-  }
 
-  dispatch({
-    type: "INITIALIZE",
-    payload: { isAuthenticated: false, user: null, role: null },
-  });
-}, []);
+    dispatch({
+      type: "INITIALIZE",
+      payload: { isAuthenticated: false, user: null, role: null },
+    });
+  }, []);
 
   // 🔥 Login contra Django SimpleJWT
   const login = async ({ username, password }) => {
@@ -155,6 +155,34 @@ export function AuthProvider({ children }) {
       throw err;
     }
   };
+
+  const refreshAccessToken = async () => {
+    const refreshToken = sessionStorage.getItem("refreshToken");
+    if (!refreshToken) {
+      logout();
+      return null;
+    }
+
+    try {
+      const resp = await axios.post("http://localhost:8000/api/token/refresh/", {
+        refresh: refreshToken,
+      });
+
+      const { access } = resp.data;
+      if (access) {
+        setSession(access);
+        sessionStorage.setItem("authToken", access);
+        sessionStorage.setItem("lastActivity", Date.now());
+        console.log("🔄 Token renovado automáticamente");
+        return access;
+      }
+    } catch (err) {
+      console.error("❌ Error al refrescar token:", err);
+      logout();
+      return null;
+    }
+  };
+
 
   const logout = () => {
     if (logoutTimer) clearTimeout(logoutTimer);
