@@ -1,10 +1,55 @@
 import uuid
+import os
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
 from datetime import timedelta
 from django.contrib.auth import get_user_model
+from django.utils.timezone import now
+
+def entidad_cover_upload_to(instance, filename):
+    """
+    Define el nombre del archivo de portada de la entidad.
+    Ejemplo: entidades/cover_entidad_5.png
+    """
+    ext = filename.split('.')[-1]
+
+    # Si la entidad aún no tiene ID, generamos un nombre temporal
+    if instance.id:
+        filename = f"cover_entidad_{instance.id}.{ext}"
+    else:
+        filename = f"cover_entidad_temp_{int(now().timestamp())}.{ext}"
+
+    return os.path.join('entidades', filename)
+
+
+def anuncio_banner_upload_to(instance, filename):
+    """
+    Define el nombre del archivo de banner del anuncio.
+    Ejemplo: anuncios/banners/banner_anuncio_5.png
+    """
+    ext = filename.split('.')[-1]
+    if instance.id:
+        filename = f"banner_anuncio_{instance.id}.{ext}"
+    else:
+        filename = f"banner_anuncio_temp_{int(now().timestamp())}.{ext}"
+
+    return os.path.join('anuncios/banners', filename)
+
+
+def anuncio_pdf_upload_to(instance, filename):
+    """
+    Define el nombre del archivo PDF del anuncio.
+    Ejemplo: anuncios/pdfs/anexo_anuncio_5.pdf
+    """
+    ext = filename.split('.')[-1]
+    if instance.id:
+        filename = f"anexo_anuncio_{instance.id}.{ext}"
+    else:
+        filename = f"anexo_anuncio_temp_{int(now().timestamp())}.{ext}"
+
+    return os.path.join('anuncios/pdfs', filename)
 
 
 # ======================================================
@@ -32,7 +77,12 @@ class Entidad(models.Model):
     nombre = models.CharField(max_length=100)
     correo = models.EmailField(null=True, blank=True)
     telefono = models.CharField(max_length=20, blank=True, null=True)
-    foto_portada = models.ImageField(upload_to="entidades/", default="entidades/default.webp", blank=True, null=True)
+    foto_portada = models.ImageField(
+        upload_to=entidad_cover_upload_to,
+        default="entidades/default.webp",
+        blank=True,
+        null=True
+    )
 
     responsable = models.ForeignKey(
         "accounts.User",
@@ -48,6 +98,25 @@ class Entidad(models.Model):
         limit_choices_to={"role": "usuario"}
     )
 
+    def save(self, *args, **kwargs):
+        """
+        Sobrescribe save() para renombrar la foto_portada después de obtener un ID.
+        """
+        super().save(*args, **kwargs)
+
+        if self.foto_portada and "temp" in self.foto_portada.name:
+            old_path = self.foto_portada.path
+            ext = old_path.split('.')[-1]
+            new_filename = f"cover_entidad_{self.id}.{ext}"
+            new_path = os.path.join(os.path.dirname(old_path), new_filename)
+
+            # Renombrar archivo físicamente en el sistema
+            os.rename(old_path, new_path)
+
+            # Actualizar la referencia en la base de datos
+            self.foto_portada.name = f"entidades/{new_filename}"
+            super().save(update_fields=["foto_portada"])
+
     def __str__(self):
         return self.nombre
 
@@ -60,11 +129,68 @@ class Anuncio(models.Model):
     titulo = models.CharField(max_length=255)
     frase = models.CharField(max_length=255, blank=True, null=True)
     descripcion = models.TextField()
-    banner = models.ImageField(upload_to="anuncios/banners/", blank=True, null=True)
-    archivo_pdf = models.FileField(upload_to="anuncios/pdfs/", blank=True, null=True)
+    banner = models.ImageField(upload_to=anuncio_banner_upload_to, blank=True, null=True)
+    archivo_pdf = models.FileField(upload_to=anuncio_pdf_upload_to, blank=True, null=True)
     fecha_inicio = models.DateField(blank=True, null=True)
     fecha_fin = models.DateField(blank=True, null=True)
+
+    ESTADO_CHOICES = [
+        ("pendiente", "Pendiente de revisión"),
+        ("aprobado", "Aprobado"),
+        ("rechazado", "Rechazado"),
+    ]
+
+    estado = models.CharField(
+        max_length=20,
+        choices=ESTADO_CHOICES,
+        default="pendiente"
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        """
+        Sobrescribe save() para renombrar banner y PDF después de obtener un ID.
+        """
+        if self.pk:
+            old_instance = Anuncio.objects.filter(pk=self.pk).first()
+            if old_instance:
+                # Eliminar banner viejo si cambió
+                if old_instance.banner and old_instance.banner != self.banner:
+                    if os.path.isfile(old_instance.banner.path):
+                        os.remove(old_instance.banner.path)
+                # Eliminar PDF viejo si cambió
+                if old_instance.archivo_pdf and old_instance.archivo_pdf != self.archivo_pdf:
+                    if os.path.isfile(old_instance.archivo_pdf.path):
+                        os.remove(old_instance.archivo_pdf.path)
+
+        super().save(*args, **kwargs)
+
+        # --- Renombrar banner si tiene nombre temporal ---
+        if self.banner and "temp" in self.banner.name:
+            old_path = self.banner.path
+            ext = old_path.split('.')[-1]
+            new_filename = f"banner_anuncio_{self.id}.{ext}"
+            new_path = os.path.join(os.path.dirname(old_path), new_filename)
+
+            if os.path.exists(old_path):
+                os.rename(old_path, new_path)
+
+            self.banner.name = f"anuncios/banners/{new_filename}"
+            super().save(update_fields=["banner"])
+
+        # --- Renombrar archivo PDF si tiene nombre temporal ---
+        if self.archivo_pdf and "temp" in self.archivo_pdf.name:
+            old_path = self.archivo_pdf.path
+            ext = old_path.split('.')[-1]
+            new_filename = f"anexo_anuncio_{self.id}.{ext}"
+            new_path = os.path.join(os.path.dirname(old_path), new_filename)
+
+            if os.path.exists(old_path):
+                os.rename(old_path, new_path)
+
+            self.archivo_pdf.name = f"anuncios/pdfs/{new_filename}"
+            super().save(update_fields=["archivo_pdf"])
 
     def __str__(self):
         return self.titulo
@@ -131,11 +257,14 @@ def default_expires_at():
     return timezone.now() + timedelta(days=1)
 
 class PasswordResetToken(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="reset_tokens")
+    user = models.ForeignKey('User', on_delete=models.CASCADE, related_name='reset_tokens')
     token = models.UUIDField(default=uuid.uuid4, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    expires_at = models.DateTimeField(default=default_expires_at)
+    expires_at = models.DateTimeField(default=timezone.now() + timedelta(days=1))
     used = models.BooleanField(default=False)
 
     def is_valid(self):
         return not self.used and timezone.now() < self.expires_at
+
+    def __str__(self):
+        return f"Token for {self.user.email} - {'Used' if self.used else 'Active'}"

@@ -29,22 +29,20 @@ export function PostCard({ anuncio, cover, category, created_at, title, descript
       <div className="flex grow flex-col p-4">
         <div className="flex">
           <a
-            href="##"
-            className="truncate text-xs text-info dark:text-info-lighter"
+            className="text-tiny-plus text-gray-400 dark:text-dark-300"
           >
-            <Highlight query={query}>{category}</Highlight>
+            <Highlight query={String(query || "")}>{String(category || "")}</Highlight>
           </a>
           <div className="mx-2 my-0.5 w-px bg-gray-200 dark:bg-dark-500"></div>
           <span className="text-tiny-plus text-gray-400 dark:text-dark-300">
             {created_at}
           </span>
         </div>
-        <div className="line-clamp-2 pt-2">
+        <div className="flex line-clamp-2 pt-2">
           <a
-            href="##"
             className="text-base font-medium text-gray-700 hover:text-primary-600 focus:text-primary-600 dark:text-dark-100 dark:hover:text-primary-400 dark:focus:text-primary-400"
           >
-            <Highlight query={query}>{title}</Highlight>
+            <Highlight query={String(query || "")}>{String(title || "")}</Highlight>
           </a>
         </div>
         <p className="grow pt-2">{description}</p>

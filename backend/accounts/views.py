@@ -1,19 +1,33 @@
+import os
+
 from rest_framework import viewsets, mixins, serializers, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework_simplejwt.views import TokenViewBase, TokenRefreshView
 from rest_framework.exceptions import PermissionDenied
-from datetime import date
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from datetime import date
+
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+from reportlab.lib.enums import TA_JUSTIFY
+from reportlab.lib.units import inch
+
+from textwrap import wrap
+
 from django.core.mail import send_mail
+from django.conf import settings
 
 from .models import Anuncio, Entidad
 from .serializers import AnuncioSerializer
 
 from .tokens import RoleTokenObtainPairSerializer
+
 from .permissions import IsAdmin, IsSuperAdmin, IsResponsable, ReadOnly
 from .models import (
     User, Entidad, Anuncio, Notificacion,
@@ -60,6 +74,25 @@ class UserViewSet(mixins.ListModelMixin,
         if role:
             queryset = queryset.filter(role=role)
         return queryset
+    
+    # Método para actualizar el campo 'is_active'
+    @action(detail=True, methods=["patch"])
+    def toggle_active(self, request, pk=None):
+        try:
+            user = self.get_object()  # Gets the user by ID from the URL
+            is_active = request.data.get("is_active")  # Gets the new status from the body
+
+            if is_active is None:
+                return Response({"detail": "is_active parameter is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+            user.is_active = is_active  # Update the user's is_active status
+            user.save()
+
+            return Response({"detail": "User status updated successfully"}, status=status.HTTP_200_OK)
+        except User.DoesNotExist:
+            return Response({"detail": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class EntidadViewSet(viewsets.ModelViewSet):
@@ -91,7 +124,7 @@ class EntidadViewSet(viewsets.ModelViewSet):
             if user.role == "admin":
                 return Entidad.objects.filter(gestores__administrador=user).order_by("id")
             if user.role == "responsable":
-                return Entidad.objects.filter(responsables__responsable=user).order_by("id")
+                return Entidad.objects.filter(responsable=user).order_by("id")
             if user.role == "usuario":
                 return user.entidades_usuario.all().order_by("id")
         else:
@@ -99,21 +132,48 @@ class EntidadViewSet(viewsets.ModelViewSet):
     
     def perform_create(self, serializer):
         user = self.request.user
+        data = self.request.data 
 
-        if user.role == "superadmin":
-            administrador_id = self.request.data.get("administrador_id")
-            if administrador_id:
-                administrador = User.objects.get(id=administrador_id)
-                entidad = serializer.save()
-                # Aseguramos que solo un administrador puede ser asignado
-                if not GestionEntidad.objects.filter(entidad=entidad, administrador=administrador).exists():
-                    GestionEntidad.objects.create(entidad=entidad, administrador=administrador)
+        print("📩 Datos recibidos:", data)
+
+        admin_id = data.get("administrador_input") or data.get("administrador_id")
+
+        entidad = serializer.save()
+
+        if user.role == "superadmin":            
+            if admin_id:
+                try:
+                    administrador = User.objects.get(id=admin_id)
+                    if not GestionEntidad.objects.filter(entidad=entidad, administrador=administrador).exists():
+                        GestionEntidad.objects.create(entidad=entidad, administrador=administrador)
+                except User.DoesNotExist:
+                    raise serializers.ValidationError({"administrador_id": "El administrador no existe"})
+            else:
+                raise serializers.ValidationError({"administrador_id": "Debe seleccionar un administrador"})
+                
         elif user.role == "admin":
-            entidad = serializer.save()
             if not GestionEntidad.objects.filter(entidad=entidad, administrador=user).exists():
                 GestionEntidad.objects.create(entidad=entidad, administrador=user)
         else:
             raise PermissionDenied("No tienes permiso para crear una entidad")
+        
+        
+        
+        # ✅ Generar PDF automáticamente
+        pdf_path = f"media/entidades/informacion/ficha_entidad_{entidad.id}.pdf"
+        os.makedirs(os.path.dirname(pdf_path), exist_ok=True)
+
+        c = canvas.Canvas(pdf_path, pagesize=letter)
+        c.setFont("Helvetica-Bold", 16)        
+        c.drawString(100, 750, f"Información de: {entidad.nombre}")
+        c.setFont("Helvetica", 12)
+        c.drawString(100, 700, f"Correo: {entidad.correo or 'N/A'}")
+        c.drawString(100, 680, f"Teléfono: {entidad.telefono or 'N/A'}")
+
+        c.showPage()
+        c.save()
+
+        print(f"✅ PDF generado en: {pdf_path}")
 
 
 class AnuncioViewSet(viewsets.ModelViewSet):
@@ -136,33 +196,51 @@ class AnuncioViewSet(viewsets.ModelViewSet):
         if user.role == "usuario":
             return [IsAuthenticated()]  # puede crear
         if user.role == "responsable":
-            return [ReadOnly()]  # solo lectura
+            return [IsAuthenticated()]  # solo lectura
         return [ReadOnly()]
 
     def get_queryset(self):
         user = self.request.user
         entidad_id = self.request.GET.get("entidad_id")
         anuncio_id = self.kwargs.get('anuncio_id')
+        estado = self.request.GET.get("estado")  # El estado puede ser 'pendiente' o 'aprobado'
 
-        print(f"Filtrando anuncios por entidad_id: {entidad_id}, anuncio_id: {anuncio_id}")
+        # Comenzamos con la queryset general
+        qs = Anuncio.objects.all()
 
-        # Si no hay usuario autenticado, solo mostramos anuncios públicos
+        # Si el usuario no está autenticado, solo mostramos los anuncios públicos aprobados
         if not user.is_authenticated:
-            qs = Anuncio.objects.exclude(banner="").exclude(banner=None)
+            qs = qs.filter(estado="aprobado").exclude(banner__isnull=True).exclude(banner="")
             if entidad_id:
                 qs = qs.filter(entidad_id=entidad_id)
             return qs
 
         # Filtrado según el rol del usuario
         if user.role == "superadmin":
-            qs = Anuncio.objects.all()
+            # El superadmin ve todos los anuncios
+            pass  # No es necesario cambiar nada aquí porque 'qs' ya contiene todos los anuncios
+
         elif user.role == "admin":
-            qs = Anuncio.objects.filter(entidad__gestores__administrador=user)
+            # El admin ve los anuncios asociados a las entidades que gestiona
+            qs = qs.filter(entidad__gestores__administrador=user)
+
         elif user.role == "usuario":
-            qs = Anuncio.objects.filter(entidad__in=user.entidades_usuario.all())
+            # El usuario ve los anuncios aprobados de las entidades a las que pertenece
+            qs = qs.filter(entidad__in=user.entidades_usuario.all(), estado="aprobado")
+
         elif user.role == "responsable":
-            qs = Anuncio.objects.filter(entidad__responsable=user)
+            # El responsable ve los anuncios de las entidades que gestiona
+            qs = qs.filter(entidad__responsable=user)
+        
+            # Si el estado es 'pendiente', lo filtramos por estado
+            if estado:
+                qs = qs.filter(estado=estado)
+            else:
+                # Si no se especifica estado, mostramos solo los aprobados
+                qs = qs.filter(estado="pendiente")
+
         else:
+            # Si no se cumple ninguno de los roles anteriores, no mostramos anuncios
             qs = Anuncio.objects.none()
 
         # Filtrar por entidad_id si está presente
@@ -174,6 +252,7 @@ class AnuncioViewSet(viewsets.ModelViewSet):
             qs = qs.filter(id=anuncio_id)
 
         return qs
+
 
     def perform_create(self, serializer):
         user = self.request.user
@@ -188,22 +267,74 @@ class AnuncioViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError({"entidad": f"No existe una entidad con id {entidad_id}"})
 
         if user.role == "superadmin":
-            serializer.save(usuario=user, entidad=entidad)
+            anuncio = serializer.save(usuario=user, entidad=entidad, estado="aprobado")
 
         elif user.role == "admin":
             if Entidad.objects.filter(id=entidad_id, gestores__administrador=user).exists():
-                serializer.save(usuario=user, entidad=entidad)
+                anuncio = serializer.save(usuario=user, entidad=entidad, estado="aprobado")
             else:
                 raise serializers.ValidationError({"detail": "No puedes crear anuncios en esta entidad"})
 
         elif user.role == "usuario":
             if Entidad.objects.filter(id=entidad_id, usuarios=user).exists():
-                serializer.save(usuario=user, entidad=entidad)
+                anuncio = serializer.save(usuario=user, entidad=entidad, estado="pendiente")
             else:
                 raise serializers.ValidationError({"detail": "No perteneces a esta entidad"})
 
         else:
             raise serializers.ValidationError({"detail": "No tienes permiso para crear anuncios"})
+        
+        if anuncio.estado == "aprobado":
+            self.generar_pdf_anuncio(anuncio)
+
+    def generar_pdf_anuncio(self, anuncio):
+        """Genera un PDF bien formateado con texto largo justificado."""
+        pdf_dir = os.path.join(settings.MEDIA_ROOT, "anuncios", "informacion")
+        os.makedirs(pdf_dir, exist_ok=True)
+
+        pdf_path = os.path.join(pdf_dir, f"info_anuncio_{anuncio.id}.pdf")
+
+        # Crear documento
+        doc = SimpleDocTemplate(
+            pdf_path,
+            pagesize=letter,
+            rightMargin=72,
+            leftMargin=72,
+            topMargin=72,
+            bottomMargin=72,
+        )
+
+        styles = getSampleStyleSheet()
+        styles.add(ParagraphStyle(name="Justify", alignment=TA_JUSTIFY, leading=16))
+
+        content = []
+
+        # Título principal
+        content.append(Paragraph(f"<b>Información de</b> {anuncio.titulo}", styles["Heading2"]))
+        content.append(Spacer(1, 12))
+
+        # Información básica
+        if anuncio.frase:
+            content.append(Paragraph(f"<b>Frase:</b> {anuncio.frase}", styles["Normal"]))
+        content.append(Spacer(1, 10))
+
+        # Descripción (larga y justificada)
+        descripcion = anuncio.descripcion or "---"
+        content.append(Paragraph("<b>Descripción:</b>", styles["Normal"]))
+        content.append(Paragraph(descripcion.replace("\n", "<br/>"), styles["Justify"]))
+        content.append(Spacer(1, 12))
+
+        # Fechas y datos adicionales
+        content.append(Paragraph(f"<b>Entidad:</b> {anuncio.entidad.nombre}", styles["Normal"]))
+        content.append(Paragraph(f"<b>Fecha inicio:</b> {anuncio.fecha_inicio or '---'}", styles["Normal"]))
+        content.append(Paragraph(f"<b>Fecha fin:</b> {anuncio.fecha_fin or '---'}", styles["Normal"]))
+
+        # Construir el PDF
+        doc.build(content)
+
+        # Guardar referencia en el modelo
+        anuncio.archivo_pdf.name = f"anuncios/informacion/info_anuncio_{anuncio.id}.pdf"
+        anuncio.save(update_fields=["archivo_pdf"])
 
     @action(detail=False, methods=["get"], permission_classes=[AllowAny])
     def public(self, request):
@@ -214,7 +345,42 @@ class AnuncioViewSet(viewsets.ModelViewSet):
             qs = qs.filter(entidad_id=entidad_id)
         serializer = self.get_serializer(qs, many=True)
         return Response(serializer.data)
+    
+    @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated])
+    def revisar(self, request, pk=None):
+        """Permite a los responsables aprobar o rechazar anuncios"""
+        user = request.user
+        anuncio = self.get_object()
 
+        if anuncio.estado != "pendiente":
+            return Response({"detail": "Este anuncio no está pendiente de revisión."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if user.role != "responsable":
+            raise PermissionDenied("Solo los responsables pueden revisar anuncios")
+
+        if anuncio.entidad.responsable != user:
+            raise PermissionDenied("No puedes revisar anuncios de otras entidades")
+
+        accion = request.data.get("accion")
+        if accion not in ["aprobar", "rechazar"]:
+            return Response({"detail": "Acción inválida"}, status=400)
+
+        if accion == "aprobar":
+            anuncio.estado = "aprobado"
+            anuncio.save(update_fields=["estado"])
+            self.generar_pdf_anuncio(anuncio)
+        else:
+            anuncio.estado = "rechazado"
+            anuncio.save(update_fields=["estado"])
+
+        return Response({"ok": True, "nuevo_estado": anuncio.estado})
+    
+    @action(detail=False, methods=["get"], permission_classes=[AllowAny])
+    def todos(self, request):
+        """Devuelve todos los anuncios aprobados, sin importar la entidad."""
+        anuncios = Anuncio.objects.filter(estado="aprobado").exclude(banner__isnull=True)
+        serializer = self.get_serializer(anuncios, many=True)
+        return Response(serializer.data)
 
 
 class NotificacionViewSet(viewsets.ModelViewSet):
@@ -276,7 +442,7 @@ class UsuarioViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        user = serializer.save()
+        user = serializer.save(is_active=False)
 
         # Crear token temporal
         token = PasswordResetToken.objects.create(user=user)
@@ -287,7 +453,12 @@ class UsuarioViewSet(viewsets.ModelViewSet):
 
         send_mail(
             subject="Asignación de contraseña",
-            message=f"Hola {user.first_name}, accede al siguiente enlace para asignar tu contraseña: {link}",
+            message=(
+                f"Hola {user.first_name},\n\n"
+                f"Se ha creado tu cuenta en el sistema. Para asignar tu contraseña, accede al siguiente enlace: {link}\n\n"
+                f"Tu nombre de usuario es: {user.username}\n\n"
+                f"Saludos,\nEl equipo de soporte"
+            ),
             from_email="no-reply@tusitio.com",
             recipient_list=[user.email],
         )
@@ -331,6 +502,7 @@ class ResetPassword(APIView):
             
             user = reset_token.user
             user.set_password(password)
+            user.is_active = True 
             user.save()
 
             reset_token.used = True
@@ -340,3 +512,34 @@ class ResetPassword(APIView):
         except PasswordResetToken.DoesNotExist:
             return Response({"error": "Token inválido"}, status=400)
 
+class ResendTokenView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, user_id):  # El 'user_id' debe venir de la URL
+        try:
+            # Buscar al usuario desactivado
+            user = User.objects.get(id=user_id, is_active=False)
+
+            # Crear un nuevo token de restablecimiento de contraseña
+            reset_token = PasswordResetToken.objects.create(user=user)
+
+            # Crear el enlace de restablecimiento
+            FRONTEND_URL = "http://localhost:5173"  # Ajusta la URL según tu configuración
+            link = f"{FRONTEND_URL}/crear-contraseña/{reset_token.token}/"
+
+            # Enviar el correo con el enlace de restablecimiento
+            send_mail(
+                subject="Asignación de contraseña",
+                message=(
+                    f"Hola {user.first_name},\n\n"
+                    f"Se ha creado tu cuenta en el sistema. Para asignar tu contraseña, accede al siguiente enlace: {link}\n\n"
+                    f"Tu nombre de usuario es: {user.username}\n\n"
+                    f"Saludos,\nEl equipo de soporte"
+                ),
+                from_email="no-reply@tusitio.com",
+                recipient_list=[user.email],
+            )
+
+            return Response({"success": "Token reenviado"}, status=200)
+        except User.DoesNotExist:
+            return Response({"error": "Usuario no encontrado o ya está activo"}, status=404)

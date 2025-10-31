@@ -33,7 +33,7 @@ export function PostContent({ anuncio }) {
             rel="noopener noreferrer"
             className="text-primary-600 underline"
           >
-            Ver documento PDF
+            {anuncio.titulo} PDF
           </a>
         </div>
       )}

@@ -2,9 +2,10 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import PropTypes from "prop-types";
+import axios from "utils/axios";
 
 // Local Imports
-import {  Badge } from "components/ui";
+import { Badge } from "components/ui";
 import { StyledSwitch } from "components/shared/form/StyledSwitch";
 import { rolesOptions } from "./data";
 
@@ -25,11 +26,6 @@ export function LastNameCell({ getValue }) {
     </div>
   );
 }
-
-LastNameCell.propTypes = {
-  getValue: PropTypes.func,
-};
-
 
 export function RoleCell({ getValue }) {
   const val = getValue();
@@ -56,12 +52,39 @@ export function EntitiesCell({ getValue }) {
   );
 }
 
-EntitiesCell.propTypes = {
-  getValue: PropTypes.func,
-};
+export function StatusCell({ row }) {
+  const userId = row.original.id;
+  const initialStatus = row.original.is_active;
 
+  const [active, setActive] = useState(initialStatus);
+  const [loading, setLoading] = useState(false);
 
-export function StatusCell({
+  const handleToggle = async (checked) => {
+    setLoading(true);
+    try {
+      await axios.patch(`/users/${userId}/toggle_active/`, { is_active: checked });
+      setActive(checked);
+      toast.success(`Usuario ${checked ? "activado" : "desactivado"} correctamente`);
+    } catch (err) {
+      console.error(err);
+      toast.error("No se pudo actualizar el estado");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="flex justify-center">
+      <StyledSwitch
+        checked={active}
+        onChange={handleToggle}
+        loading={loading}
+      />
+    </div>
+  );
+}
+
+export function StatusToggleCell({
   getValue,
   row: { index },
   column: { id },
@@ -74,7 +97,7 @@ export function StatusCell({
     setLoading(true);
     setTimeout(() => {
       table.options.meta?.updateData(index, id, checked);
-      toast.success("User status updated");
+      toast.success("Estado del usuario actualizado");
       setLoading(false);
     }, 1000);
   };
@@ -89,18 +112,22 @@ export function StatusCell({
   );
 }
 
+EntitiesCell.propTypes = {
+  getValue: PropTypes.func,
+};
 NameCell.propTypes = {
   getValue: PropTypes.func,
   row: PropTypes.object,
   column: PropTypes.object,
   table: PropTypes.object,
 };
-
+LastNameCell.propTypes = {
+  getValue: PropTypes.func,
+};
 RoleCell.propTypes = {
   getValue: PropTypes.func,
 };
-
-StatusCell.propTypes = {
+StatusToggleCell.propTypes = {
   getValue: PropTypes.func,
   row: PropTypes.object,
   column: PropTypes.object,

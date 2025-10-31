@@ -134,10 +134,10 @@ export default function NuevaEntidadPage() {
             }
 
             if (isSuperAdmin && data.administrador_id) {
-                formData.append("administrador_id", data.administrador_id);
+                formData.append("administrador_input", data.administrador_id);
             } else if (!isSuperAdmin) {
                 const currentAdminId = user?.id;  // Obtener el admin actual
-                formData.append("administrador_id", currentAdminId);
+                formData.append("administrador_input", currentAdminId);
             }
 
             if (entidadId) {

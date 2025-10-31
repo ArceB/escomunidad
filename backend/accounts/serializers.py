@@ -11,7 +11,7 @@ class UserSerializer(serializers.ModelSerializer):
     entidades = serializers.SerializerMethodField()
     class Meta:
         model = User
-        fields = ["id", "username", "email", "role", "entidad", "entidades", "first_name", "last_name"]
+        fields = ["id", "username", "email", "role", "entidad", "entidades", "first_name", "last_name", "is_active"]
 
     def get_entidades(self, obj):
         # entidades donde es usuario
@@ -45,7 +45,14 @@ class EntidadSerializer(serializers.ModelSerializer):
     )
     usuarios = UserSerializer(many=True, read_only=True)
 
-    administrador_id = serializers.SerializerMethodField()  # 👈 cambiamos esto
+    administrador_id = serializers.SerializerMethodField(read_only=True) 
+    administrador_input = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.filter(role="admin"),
+        source="administrador",
+        write_only=True,
+        required=False,
+        allow_null=True
+    )
     administrador = UserSerializer(read_only=True)
 
     class Meta:
@@ -54,7 +61,7 @@ class EntidadSerializer(serializers.ModelSerializer):
             "id", "nombre", "correo", "telefono", "foto_portada",
             "responsable", "responsable_id",
             "usuarios", "usuarios_ids",
-            "administrador", "administrador_id",
+            "administrador", "administrador_id", "administrador_input"
         ]
 
     def get_administrador_id(self, obj):
@@ -168,7 +175,8 @@ User = get_user_model()
 class CrearUsuarioSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ["first_name", "last_name", "email", "role"]
+        fields = ["first_name", "last_name", "email", "role", "is_active"]
+        read_only_fields = ["is_active"]
 
     def create(self, validated_data):
         base_username = validated_data["email"].split("@")[0]  # parte antes del @
@@ -187,6 +195,7 @@ class CrearUsuarioSerializer(serializers.ModelSerializer):
             last_name=validated_data["last_name"],
             email=validated_data["email"],
             role=validated_data["role"],
+            is_active=False,
         )
 
         return user

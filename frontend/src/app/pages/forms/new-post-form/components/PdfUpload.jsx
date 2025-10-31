@@ -21,7 +21,12 @@ const PdfUpload = forwardRef(
         onDrop: useCallback((acceptedFiles) => {
           const file = acceptedFiles[0];
           if (file) {
-            onChange(file);
+            const ext = file.name.split('.').pop();
+            const customName = `anexo_anuncio_${existingFile ? "editando" : "nuevo"}.${ext}`;
+
+            const renamedFile = new File([file], customName, { type: file.type });
+
+            onChange(renamedFile);
           }
         }, [onChange]),
         accept: {

@@ -1,50 +1,143 @@
 // Import Dependencies
 import PropTypes from "prop-types";
 import {
-  Menu,
-  MenuButton,
-  MenuItem,
-  MenuItems,
+  //Menu,
+  //MenuButton,
+  //MenuItem,
+  //MenuItems,
   Transition,
 } from "@headlessui/react";
-import { EllipsisHorizontalIcon } from "@heroicons/react/20/solid";
+import { useState } from "react";
+import axios from "utils/axios";
+//import { EllipsisHorizontalIcon } from "@heroicons/react/20/solid";
 import { BookmarkIcon } from "@heroicons/react/24/outline";
-import clsx from "clsx";
+//import clsx from "clsx";
 import { Fragment } from "react";
 import { FaFacebook, FaInstagram, FaLinkedin, FaTwitter } from "react-icons/fa";
 
 // Local Imports
 import { useHover } from "hooks";
 import { Avatar, Button } from "components/ui";
+import { useAuthContext } from "app/contexts/auth/context";
+import { toast } from "sonner";
 
 // ----------------------------------------------------------------------
 
-export function PostHeader() {
+export function PostHeader({ anuncioId, onStatusChange, estado }) {
+  const [loading, setLoading] = useState(false);
+
+  const handleAction = async (action) => {
+    setLoading(true);
+    try {
+      const response = await axios.post(
+        `/api/anuncios/${anuncioId}/revisar/`,
+        { accion: action }
+      );
+
+      if (response.status === 200) {
+        // Llamamos a la función onStatusChange para actualizar el estado en el componente padre
+        onStatusChange(action);
+        // Redirigimos al usuario, o mostramos un mensaje de éxito
+        toast.success(`Anuncio ${action === "aprobar" ? "aprobado" : "rechazado"} correctamente.`);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Hubo un error al procesar la acción.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const { isAuthenticated, role } = useAuthContext();
   return (
     <div>
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-3">
-          <AuthorAvatar
-            name="Travis Fuller"
-            image="/images/200x200.png"
-            username="@travisfuller"
-          />
-          <div>
-            <a
-              href="##"
-              className="truncate font-medium text-gray-700 hover:text-primary-600 focus:text-primary-600 dark:text-dark-100 dark:hover:text-primary-400 dark:focus:text-primary-400"
-            >
-              Travis Fuller
-            </a>
-            <div className="mt-1.5 flex items-center text-xs">
-              <span className="truncate">Jun 26</span>
-              <div className="mx-2 my-0.5 w-px self-stretch bg-white/20"></div>
-              <p className="shrink-0">8 min red</p>
-            </div>
-          </div>
+
         </div>
         <div className="flex gap-2">
-          <div className="flex max-sm:hidden">
+          {isAuthenticated && role === "responsable" && estado === "pendiente" && (
+            <div className="flex max-sm:hidden inline-space">
+              <Button color="success"
+                className="mt-6 w-full space-x-2 "
+                onClick={() => handleAction("aprobar")}
+              loading={loading}>
+                  
+                Aceptar
+              </Button>
+              <Button color="error"
+                className="mt-6 w-full space-x-2 "
+                onClick={() => handleAction("rechazar")}
+              loading={loading}>
+                  
+                Rechazar
+              </Button>
+            </div>
+          )}
+          {!isAuthenticated && (
+            <div className="flex max-sm:hidden">
+              <Button
+                component="a"
+                href="#"
+                isIcon
+                variant="flat"
+                className="size-8 rounded-full"
+              >
+                <BookmarkIcon className="size-5" />
+              </Button>
+              <Button
+                component="a"
+                href="#"
+                isIcon
+                variant="flat"
+                className="size-8 rounded-full"
+              >
+                <FaTwitter className="size-4.5" />
+              </Button>
+              <Button
+                component="a"
+                href="#"
+                isIcon
+                variant="flat"
+                className="size-8 rounded-full"
+              >
+                <FaLinkedin className="size-4.5" />
+              </Button>
+              <Button
+                component="a"
+                href="#"
+                isIcon
+                variant="flat"
+                className="size-8 rounded-full"
+              >
+                <FaInstagram className="size-4.5" />
+              </Button>
+              <Button
+                component="a"
+                href="#"
+                isIcon
+                variant="flat"
+                className="size-8 rounded-full"
+              >
+                <FaFacebook className="size-4.5" />
+              </Button>
+            </div>
+
+          )}
+          {/** 
+          <ActionMenu />*/}
+        </div>
+      </div>
+      {!isAuthenticated && (
+        <div className="mt-6 flex items-center gap-3 sm:hidden">
+          <Button
+            variant="outlined"
+            className="space-x-2 rounded-full "
+          >
+            <BookmarkIcon className="size-4.5 text-gray-400 dark:text-gray-300" />
+            <span> Save</span>
+          </Button>
+          <div className="flex flex-wrap">
             <Button
               component="a"
               href="#"
@@ -91,65 +184,8 @@ export function PostHeader() {
               <FaFacebook className="size-4.5" />
             </Button>
           </div>
-          <ActionMenu />
         </div>
-      </div>
-      <div className="mt-6 flex items-center gap-3 sm:hidden">
-        <Button
-          variant="outlined"
-          className="space-x-2 rounded-full "
-        >
-          <BookmarkIcon className="size-4.5 text-gray-400 dark:text-gray-300" />
-          <span> Save</span>
-        </Button>
-        <div className="flex flex-wrap">
-          <Button
-            component="a"
-            href="#"
-            isIcon
-            variant="flat"
-            className="size-8 rounded-full"
-          >
-            <BookmarkIcon className="size-5" />
-          </Button>
-          <Button
-            component="a"
-            href="#"
-            isIcon
-            variant="flat"
-            className="size-8 rounded-full"
-          >
-            <FaTwitter className="size-4.5" />
-          </Button>
-          <Button
-            component="a"
-            href="#"
-            isIcon
-            variant="flat"
-            className="size-8 rounded-full"
-          >
-            <FaLinkedin className="size-4.5" />
-          </Button>
-          <Button
-            component="a"
-            href="#"
-            isIcon
-            variant="flat"
-            className="size-8 rounded-full"
-          >
-            <FaInstagram className="size-4.5" />
-          </Button>
-          <Button
-            component="a"
-            href="#"
-            isIcon
-            variant="flat"
-            className="size-8 rounded-full"
-          >
-            <FaFacebook className="size-4.5" />
-          </Button>
-        </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -207,7 +243,7 @@ function AuthorAvatar({ name, image, username }) {
   );
 }
 
-function ActionMenu() {
+/*function ActionMenu() {
   return (
     <Menu as="div" className="relative inline-block text-left">
       <MenuButton
@@ -287,10 +323,15 @@ function ActionMenu() {
       </Transition>
     </Menu>
   );
-}
+}*/
 
 AuthorAvatar.propTypes = {
   name: PropTypes.string,
   image: PropTypes.string,
   username: PropTypes.string,
+};
+PostHeader.propTypes = {
+  anuncioId: PropTypes.string.isRequired,  // Asegúrate de pasar el anuncioId desde el componente principal
+  onStatusChange: PropTypes.func.isRequired, // Función para manejar el cambio de estado
+  estado: PropTypes.string.isRequired, // Estado del anuncio
 };

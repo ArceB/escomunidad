@@ -27,7 +27,7 @@ import { useAuthContext } from "app/contexts/auth/context";
 
 // ----------------------------------------------------------------------
 
-export function Toolbar({ query, setQuery }) {
+export function Toolbar({ query, setQuery, mostrandoPendientes }) {
   const [showMobileSearch, setShowMobileSearch] = useState(false);
   const mobileSearchRef = useRef();
   const { isXs } = useBreakpointsContext();
@@ -68,7 +68,10 @@ export function Toolbar({ query, setQuery }) {
             <h2 className="truncate text-xl font-medium text-gray-700 dark:text-dark-50 lg:text-2xl">
               Anuncios
             </h2>
-            <ActionMenu />
+            <ActionMenu
+              mostrandoPendientes={mostrandoPendientes}
+            />
+
           </div>
           <div className="flex items-center space-x-1 ">
             <Input
@@ -111,12 +114,12 @@ export function Toolbar({ query, setQuery }) {
   );
 }
 
-function ActionMenu() {
+function ActionMenu({ mostrandoPendientes }) {
   const navigate = useNavigate();
   const { id: entidadId } = useParams();
   const { role } = useAuthContext();
-  
-  if (!role) return null; 
+
+  if (!role) return null;
 
   return (
     <Menu as="div" className="relative inline-block text-left">
@@ -137,29 +140,36 @@ function ActionMenu() {
         leaveTo="opacity-0 translate-y-2"
       >
         <MenuItems className="absolute z-100 mt-1.5 min-w-[10rem] whitespace-nowrap rounded-lg border border-gray-300 bg-white py-1 shadow-lg shadow-gray-200/50 outline-hidden focus-visible:outline-hidden dark:border-dark-500 dark:bg-dark-700 dark:shadow-none ltr:right-0 rtl:left-0">
-        {(role === "admin" || role === "superadmin" || role == "usuario") && (
-          <MenuItem>
-            {({ focus }) => (
-              <button
-                onClick={() =>
-                  navigate(`/administracion/entidades/${entidadId}/anuncios/nuevo`)
-                }
-                className={clsx(
-                  "flex h-9 w-full items-center space-x-2 px-3 tracking-wide outline-hidden transition-colors ",
-                  focus &&
-                  "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100"
-                )}
-              >
-                <PlusIcon className="size-4.5 stroke-2" />
-                <span>Nuevo Anuncio</span>
-              </button>
-            )}
-          </MenuItem>
-        )}
+          {(role === "admin" || role === "superadmin" || role == "usuario") && (
+            <MenuItem>
+              {({ focus }) => (
+                <button
+                  onClick={() =>
+                    navigate(`/administracion/entidades/${entidadId}/anuncios/nuevo`)
+                  }
+                  className={clsx(
+                    "flex h-9 w-full items-center space-x-2 px-3 tracking-wide outline-hidden transition-colors ",
+                    focus &&
+                    "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100"
+                  )}
+                >
+                  <PlusIcon className="size-4.5 stroke-2" />
+                  <span>Nuevo Anuncio</span>
+                </button>
+              )}
+            </MenuItem>
+          )}
           {(role === "admin" || role === "superadmin" || role == "responsable") && (
             <MenuItem>
               {({ focus }) => (
                 <button
+                  onClick={() =>
+                    navigate(
+                      mostrandoPendientes
+                        ? `/administracion/entidades/${entidadId}/anuncios`
+                        : `/administracion/entidades/${entidadId}/anuncios/pendientes`
+                    )
+                  }
                   className={clsx(
                     "flex h-9 w-full items-center space-x-2 px-3 tracking-wide outline-hidden transition-colors ",
                     focus &&
@@ -167,7 +177,7 @@ function ActionMenu() {
                   )}
                 >
                   <Cog8ToothIcon className="size-4.5 stroke-2" />
-                  <span>Ajustes</span>
+                  <span>{mostrandoPendientes ? "Ver todos" : "Pendientes"}</span>
                 </button>
               )}
             </MenuItem>
@@ -181,4 +191,5 @@ function ActionMenu() {
 Toolbar.propTypes = {
   query: PropTypes.string,
   setQuery: PropTypes.func,
+  mostrandoPendientes: PropTypes.bool,
 };

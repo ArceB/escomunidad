@@ -14,26 +14,31 @@ export default function BlogCard7({ onCardClick }) {
   const { id: entidadId } = useParams();
   const [posts, setPosts] = useState([]);
 
-  useEffect(() => {
-    const fetchAnuncios = async () => {
-      try {
-        console.log("Entidad ID:", entidadId);
+  const fetchAnuncios = async () => {
+    try {
+      const token = sessionStorage.getItem("authToken");
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-        const token = sessionStorage.getItem("authToken");
+      let url = `/anuncios/?entidad_id=${entidadId}`;
 
-        console.log(`Haciendo solicitud a: /anuncios/?entidad_id=${entidadId}`);
-
-        const headers = token ? { Authorization: `Bearer ${token}` } : {};
-        const res = await axios.get(
-          `/anuncios/?entidad_id=${entidadId}`, { headers });
-        setPosts(res.data);
-      } catch (err) {
-        console.error("Error cargando anuncios:", err);
+      const isPendientes = window.location.pathname.includes("pendientes");
+      if (isPendientes) {
+        url += "&estado=pendiente";
+      } else {
+        url += "&estado=aprobado";  // Agregar esto para la vista de todos los anuncios
       }
-    };
 
+      console.log("Solicitando anuncios desde:", url);
+      const res = await axios.get(url, { headers });
+      setPosts(res.data);
+    } catch (err) {
+      console.error("Error cargando anuncios:", err);
+    }
+  };
+
+  useEffect(() => {
     if (entidadId) fetchAnuncios();
-  }, [entidadId]);
+  }, [entidadId, window.location.pathname]);
 
   // 🔍 Buscador Fuse.js
   const { result: filteredPosts, query, setQuery } = useFuse(posts, {
@@ -42,10 +47,15 @@ export default function BlogCard7({ onCardClick }) {
     matchAllOnEmptyQuery: true,
   });
 
+  const isPendientes = window.location.pathname.includes("pendientes");
+
   return (
     <Page title="Anuncios">
       <div className="transition-content w-full px-(--margin-x) pb-8">
-        <Toolbar setQuery={setQuery} query={query} />
+        <Toolbar
+          setQuery={setQuery}
+          query={query}
+        />
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 lg:gap-6 xl:grid-cols-4">
           {filteredPosts.map((f) => {
@@ -74,7 +84,9 @@ export default function BlogCard7({ onCardClick }) {
 
         {filteredPosts.length === 0 && (
           <p className="text-center text-gray-500 mt-10">
-            No hay anuncios para esta entidad.
+            {isPendientes
+              ? "No hay anuncios pendientes de revisión."
+              : "No hay anuncios para esta entidad."}
           </p>
         )}
       </div>

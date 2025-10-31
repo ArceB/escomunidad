@@ -6,7 +6,7 @@ from .views import (
     TokenObtainPairView, TokenRefresh, MeViewSet,
     UserViewSet, EntidadViewSet, AnuncioViewSet, NotificacionViewSet,
     AprobacionResponsableViewSet, AprobacionAdministradorViewSet,
-    GestionEntidadViewSet, ResponsableEntidadViewSet, VerifyResetToken, ResetPassword, UsuarioViewSet
+    GestionEntidadViewSet, ResponsableEntidadViewSet, VerifyResetToken, ResetPassword, UsuarioViewSet, ResendTokenView
 )
 
 router = DefaultRouter()
@@ -29,5 +29,8 @@ urlpatterns = [
     
     path("auth/verify-reset-token/", VerifyResetToken.as_view()),
     path("auth/reset-password/", ResetPassword.as_view()),
+
+    path('usuarios/<int:user_id>/resend_token/', ResendTokenView.as_view(), name='resend_token'),
+    
     path('api/', include(router.urls)),
 ]

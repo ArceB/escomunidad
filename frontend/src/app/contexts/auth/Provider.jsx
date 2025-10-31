@@ -156,34 +156,6 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const refreshAccessToken = async () => {
-    const refreshToken = sessionStorage.getItem("refreshToken");
-    if (!refreshToken) {
-      logout();
-      return null;
-    }
-
-    try {
-      const resp = await axios.post("http://localhost:8000/api/token/refresh/", {
-        refresh: refreshToken,
-      });
-
-      const { access } = resp.data;
-      if (access) {
-        setSession(access);
-        sessionStorage.setItem("authToken", access);
-        sessionStorage.setItem("lastActivity", Date.now());
-        console.log("🔄 Token renovado automáticamente");
-        return access;
-      }
-    } catch (err) {
-      console.error("❌ Error al refrescar token:", err);
-      logout();
-      return null;
-    }
-  };
-
-
   const logout = () => {
     if (logoutTimer) clearTimeout(logoutTimer);
     sessionStorage.removeItem("authToken");

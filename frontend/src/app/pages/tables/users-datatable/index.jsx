@@ -35,24 +35,25 @@ export default function UsersDatatable() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-  const fetchUsers = async () => {
-    try {
-      const response = await axios.get("http://localhost:8000/api/users/");
-      console.log("Usuarios desde API:", response.data);
+    const fetchUsers = async () => {
+      try {
+        const response = await axios.get("http://localhost:8000/api/users/");
+        console.log("Usuarios desde API:", response.data);
 
-      // 🔥 Filtramos los que NO sean superadmin
-      const filtered = response.data.filter(user => user.role !== "superadmin");
+        // Filter out superadmins
+        const filtered = response.data.filter(user => user.role !== "superadmin");
 
-      setUsers(filtered);
-    } catch (error) {
-      console.error("Error cargando usuarios:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-  fetchUsers();
-}, []);
+        // Set users with their active state properly initialized
+        setUsers(filtered);
+      } catch (error) {
+        console.error("Error cargando usuarios:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
+    fetchUsers();
+  }, []);
 
   const [tableSettings, setTableSettings] = useState({
     enableFullScreen: false,

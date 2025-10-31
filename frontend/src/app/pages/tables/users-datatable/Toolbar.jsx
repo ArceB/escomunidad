@@ -2,7 +2,6 @@
 import {
   MagnifyingGlassIcon,
 } from "@heroicons/react/24/outline";
-import { TbGridDots, TbList } from "react-icons/tb";
 import clsx from "clsx";
 import {
   Menu,
@@ -18,7 +17,6 @@ import { useNavigate } from "react-router";
 
 // Local Imports
 import { Button, Input } from "components/ui";
-import { createScopedKeydownHandler } from "utils/dom/createScopedKeydownHandler";
 import { useBreakpointsContext } from "app/contexts/breakpoint/context";
 import { TableConfig } from "./TableConfig";
 import { rolesOptions } from "./data";
@@ -219,7 +217,6 @@ export function Toolbar({ table }) {
           >
             <SearchInput table={table} />
             <TableConfig table={table} />
-            <ViewTypeSelect table={table} />
           </div>
           <div
             className={clsx(
@@ -257,7 +254,6 @@ export function Toolbar({ table }) {
           <div className="flex shrink-0 space-x-2 ">
             <SearchInput table={table} />
             <TableConfig table={table} />
-            <ViewTypeSelect table={table} />
           </div>
         </div>
       )}
@@ -280,72 +276,10 @@ function SearchInput({ table }) {
   );
 }
 
-function ViewTypeSelect({ table }) {
-  const setViewType = table.options.meta.setViewType;
-  const viewType = table.getState().viewType;
-
-  return (
-    <div
-      data-tab
-      className="flex rounded-md bg-gray-200 px-1 py-1 text-xs-plus text-gray-800 dark:bg-dark-700 dark:text-dark-200"
-    >
-      <Button
-        data-tooltip
-        data-tooltip-content="List View"
-        data-tab-item
-        className={clsx(
-          "shrink-0 whitespace-nowrap rounded-sm px-1.5 py-1 font-medium",
-          viewType === "list"
-            ? "bg-white shadow-sm dark:bg-dark-500 dark:text-dark-100"
-            : "hover:text-gray-900 focus:text-gray-900 dark:hover:text-dark-100 dark:focus:text-dark-100",
-        )}
-        unstyled
-        onKeyDown={createScopedKeydownHandler({
-          siblingSelector: "[data-tab-item]",
-          parentSelector: "[data-tab]",
-          activateOnFocus: true,
-          loop: false,
-          orientation: "horizontal",
-        })}
-        onClick={() => setViewType("list")}
-      >
-        <TbList className="size-4.5" />
-      </Button>
-
-      <Button
-        data-tooltip
-        data-tooltip-content="Grid View"
-        data-tab-item
-        className={clsx(
-          "shrink-0 whitespace-nowrap rounded-sm px-1.5 py-1 font-medium",
-          viewType === "grid"
-            ? "bg-white shadow-sm dark:bg-dark-500 dark:text-dark-100"
-            : "hover:text-gray-900 focus:text-gray-900 dark:hover:text-dark-100 dark:focus:text-dark-100",
-        )}
-        unstyled
-        onKeyDown={createScopedKeydownHandler({
-          siblingSelector: "[data-tab-item]",
-          parentSelector: "[data-tab]",
-          activateOnFocus: true,
-          loop: false,
-          orientation: "horizontal",
-        })}
-        onClick={() => setViewType("grid")}
-      >
-        <TbGridDots className="size-4.5" />
-      </Button>
-    </div>
-  );
-}
-
 Toolbar.propTypes = {
   table: PropTypes.object,
 };
 
 SearchInput.propTypes = {
-  table: PropTypes.object,
-};
-
-ViewTypeSelect.propTypes = {
   table: PropTypes.object,
 };

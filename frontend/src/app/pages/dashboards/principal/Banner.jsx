@@ -12,17 +12,52 @@ export function Banner({ entidadId }) {
       try {
         let url = "/anuncios/public/";
         if (entidadId) {
-          url = `/anuncios/?entidad_id=${entidadId}`;
+          url = `/anuncios/?entidad_id=${entidadId}&estado=aprobado`;
         }
+
         const res = await axios.get(url);
-        console.log("Banners obtenidos:", res.data);
-        setBanners(res.data);
+        let anuncios = res.data;
+
+        console.log("Banners obtenidos:", anuncios);
+
+        anuncios = anuncios.filter(a => a.estado === "aprobado" && a.banner);
+
+        // 🔹 Los 5 más recientes
+        const ultimosCinco = [...anuncios]
+          .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+          .slice(0, 5);
+
+        // 🔹 Los 5 con fecha de fin más próxima (solo los que tienen fecha)
+        const conFechaFin = anuncios.filter(a => a.fecha_fin !== null);
+        const proximosCinco = [...conFechaFin]
+          .sort((a, b) => new Date(a.fecha_fin) - new Date(b.fecha_fin))
+          .slice(0, 5);
+
+        // 🔹 Combinar ambos, sin duplicados
+        const combinados = [
+          ...ultimosCinco,
+          ...proximosCinco.filter(
+            (p) => !ultimosCinco.some((u) => u.id === p.id)
+          ),
+        ];
+
+        // 🔹 Si hay menos de 10, completar con los que faltan
+        if (combinados.length < 10) {
+          const faltantes = anuncios.filter(
+            (a) => !combinados.some((c) => c.id === a.id)
+          );
+          combinados.push(...faltantes.slice(0, 10 - combinados.length));
+        }
+
+        setBanners(combinados);
       } catch (err) {
         console.error("Error cargando banners:", err);
       }
     };
+
     fetchAnuncios();
   }, [entidadId]);
+
 
   useEffect(() => {
     if (banners.length > 0) {

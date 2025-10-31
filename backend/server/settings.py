@@ -3,9 +3,12 @@ Django settings for server project.
 """
 from pathlib import Path
 import os
-
+import pymysql
 
 from pathlib import Path
+
+pymysql.install_as_MySQLdb()
+
 AUTH_USER_MODEL = "accounts.User"
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.

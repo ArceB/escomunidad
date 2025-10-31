@@ -7,6 +7,7 @@ import { EnvelopeIcon } from "@heroicons/react/24/outline";
 import * as yup from "yup";
 import { toast } from "sonner";
 import axios from "utils/axios";
+import { useNavigate } from "react-router";
 
 // UI Components
 import { Page } from "components/shared/Page";
@@ -54,6 +55,8 @@ const NewUserForm = () => {
     },
   });
 
+  const navigate = useNavigate(); 
+
   const onSubmit = async (data) => {
     try {
       const token = sessionStorage.getItem("authToken");
@@ -65,6 +68,7 @@ const NewUserForm = () => {
       toast.success(
         `Usuario "${data.first_name} ${data.last_name}" creado. Se envió un correo para asignar la contraseña ✅`
       );
+      navigate("/administracion/users-datatable");
 
       reset();
     } catch (err) {

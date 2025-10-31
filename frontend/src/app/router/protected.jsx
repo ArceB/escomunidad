@@ -9,6 +9,7 @@ import { DynamicLayout } from "app/layouts/DynamicLayout";
 import AuthGuard from "middleware/AuthGuard";
 import AdminGuard from "middleware/AdminGuard";
 import AnuncioGuard from "middleware/AnuncioGuard";
+import EditarAnuncioGuard from "middleware/EditarAnuncioGuard";
 
 // ----------------------------------------------------------------------
 
@@ -970,6 +971,12 @@ const protectedRoutes = {
         },
          */
         {
+          path: "anuncios-todos",
+          lazy: async () => ({
+            Component: (await import("app/pages/administracion/todos-anuncios")).default,
+          }),
+        },
+        {
           path: "users-datatable",
           element: <AdminGuard />,
           children: [
@@ -1000,10 +1007,18 @@ const protectedRoutes = {
             Component: (await import("app/pages/administracion/entidades")).default,
           }),
         },
+        
         {
           path: "entidades/:id/anuncios",
           lazy: async () => ({
             Component: (await import("app/pages/administracion/anuncios")).default,
+          }),
+        },
+        
+        {
+          path: "entidades/:id/anuncios/pendientes",
+          lazy: async () => ({
+            Component: (await import("app/pages/administracion/anuncios")).default, 
           }),
         },
         // 🟢 Crear anuncio
@@ -1022,7 +1037,7 @@ const protectedRoutes = {
         // 🟣 Editar anuncio
         {
           path: "entidades/:id/anuncios/:anuncioId/editar",
-          element: <AnuncioGuard />,
+          element: <EditarAnuncioGuard />,
           children: [
             {
               index: true,
