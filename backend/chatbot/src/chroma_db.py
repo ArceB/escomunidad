@@ -2,14 +2,19 @@ import os
 from langchain_chroma import Chroma
 from langchain_core.documents import Document
 
-# 📂 Carpetas dentro de tu app chatbot
-BASE_DIR = os.path.dirname(os.path.dirname(__file__))  # → backend/chatbot
-DOCS_DIR = os.path.join(BASE_DIR, "documents")
-CHROMA_PATH = os.path.join(BASE_DIR, "chroma")
+# 📂 Carpetas (¡MODIFICADO!)
+# La única ruta que este archivo necesita es la de la propia BD de Chroma.
+# Ya no necesita 'DOCS_DIR' porque 'bot.py' maneja la lógica de limpieza.
+BASE_DIR_APP = os.path.dirname(os.path.dirname(__file__))  # → backend/chatbot
+CHROMA_PATH = os.path.join(BASE_DIR_APP, "chroma")
 
 def save_to_chroma_db(chunks: list[Document], embedding_model) -> Chroma:
     """
-    Guarda nuevos chunks en Chroma y sincroniza eliminando documentos que ya no existen.
+    Guarda (o sobreescribe) chunks en Chroma.
+    
+    Esta función ahora es 'tonta': simplemente añade lo que le pasan.
+    La lógica de 'bot.py' (el hilo) ya decidió si estos chunks son nuevos
+    o si son de un archivo actualizado.
     """
     # Inicializar la base de datos
     db = Chroma(
@@ -17,29 +22,31 @@ def save_to_chroma_db(chunks: list[Document], embedding_model) -> Chroma:
         embedding_function=embedding_model
     )
 
-    # Obtener fuentes existentes en la BD
-    existing_docs = db.get(include=["metadatas"])["metadatas"]
-    existing_sources = {doc["source"] for doc in existing_docs if doc.get("source")}
+    if not chunks:
+        print("⚠️ save_to_chroma_db fue llamado sin chunks.")
+        return db
 
-    # Agregar chunks nuevos
-    nuevos_chunks = [doc for doc in chunks if doc.metadata.get("source") not in existing_sources]
-    if nuevos_chunks:
-        ids = [f"{doc.metadata['source']}_{i}" for i, doc in enumerate(nuevos_chunks)]
-        db.add_documents(nuevos_chunks, ids=ids)
-        print(f"✅ {len(nuevos_chunks)} nuevos documentos guardados en Chroma")
+    # Obtener el 'source' (nombre de archivo)
+    # Asumimos que todos los chunks vienen del mismo archivo
+    source_file = chunks[0].metadata.get("source")
+    
+    if not source_file:
+        print("💥 Error: Los chunks no tienen metadata 'source'. No se guardará nada.")
+        return db
 
-    # Eliminar documentos que ya no existen físicamente
-    archivos_actuales = set(os.listdir(DOCS_DIR))
-    eliminar_sources = [src for src in existing_sources if src not in archivos_actuales]
-    if eliminar_sources:
-        for src in eliminar_sources:
-            db.delete(where={"source": src})
-            try:
-                # limpiar historial de ese documento si está disponible
-                from .bot import ChatBot
-                ChatBot().limpiar_historial_de_documento(src)
-            except Exception:
-                pass
-        print(f"⚠ Documentos eliminados de Chroma: {eliminar_sources}")
+    # --- Lógica de Actualización ---
+    # 1. Borramos cualquier chunk existente de ESE MISMO archivo
+    #    Esto es vital para que las 'actualizaciones' (borrar y subir) funcionen.
+    print(f"🔄 Sincronizando {source_file}: Borrando chunks antiguos (si existen)...")
+    try:
+        db.delete(where={"source": source_file})
+    except Exception as e:
+        # Esto no es un error fatal, puede que el archivo sea 100% nuevo
+        print(f"Aviso: No se pudieron borrar chunks antiguos (quizás no existían): {e}")
+
+    # 2. Añadimos los nuevos chunks
+    print(f"✅ Guardando {len(chunks)} nuevos chunks para {source_file}...")
+    ids = [f"{source_file}_{i}" for i, doc in enumerate(chunks)]
+    db.add_documents(chunks, ids=ids)
 
     return db
