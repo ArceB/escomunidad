@@ -50,6 +50,7 @@ const NewPostForm = ({ entidadId }) => {
   console.log("Entidad ID recibido en formulario:", entidadId);
 
   const { anuncioId } = useParams(); // Obtener el ID del anuncio desde la URL}
+  const isEditing = !!anuncioId;
   const [existingCover, setExistingCover] = useState(null);
   const [existingPdf, setExistingPdf] = useState(null);
   const navigate = useNavigate();
@@ -63,6 +64,7 @@ const NewPostForm = ({ entidadId }) => {
   } = useForm({
     resolver: yupResolver(schema),
     defaultValues: initialState,
+    context: { isEditing: isEditing },
   });
 
   useEffect(() => {

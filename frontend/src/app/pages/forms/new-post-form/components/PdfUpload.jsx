@@ -46,13 +46,13 @@ const PdfUpload = forwardRef(
           className={clsx(
             "h-32 w-full rounded-lg border-2 border-dashed border-current flex items-center justify-center",
             !isDragAccept &&
-            (isDragReject || error) &&
-            "text-error dark:text-error-light",
+              (isDragReject || error) &&
+              "text-error dark:text-error-light",
             isDragAccept && "text-primary-600 dark:text-primary-500",
             !isDragReject &&
-            !isDragAccept &&
-            !error &&
-            "text-gray-300 dark:text-dark-450",
+              !isDragAccept &&
+              !error &&
+              "text-gray-300 dark:text-dark-450",
             classNames?.box,
           )}
         >
@@ -61,50 +61,76 @@ const PdfUpload = forwardRef(
             inputProps={{ ...getInputProps() }}
             {...getRootProps()}
           >
-            {({ ...props }) =>
-              value ? (
-                <div className="flex items-center justify-between w-full px-4">
-                  <div className="flex items-center gap-2 truncate">
-                    <DocumentTextIcon className="size-6 text-primary-600 dark:text-primary-400" />
-                    <span className="truncate text-gray-700 dark:text-dark-100">
-                      {value.name}
-                    </span>
-                  </div>
-                  <Button onClick={onRemove} className="size-6 shrink-0 rounded-full border p-0 dark:border-dark-450">
-                    <XMarkIcon className="size-4" />
-                  </Button>
-                </div>
-              ) : existingFile ? (
-                <div className="flex items-center justify-between w-full px-4">
-                  <div className="flex items-center gap-2 truncate">
-                    <DocumentTextIcon className="size-6 text-primary-600 dark:text-primary-400" />
-                    <a
-                      href={existingFile}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="truncate text-gray-700 dark:text-dark-100 underline"
-                    >
-                      {existingFile.split("/").pop()} {/* Extrae solo el nombre del archivo */}
-                    </a>
+            {({ ...props }) => {
+              // --- INICIO DE LA LÓGICA DE RENDERIZADO ---
 
+              // 1. Si el usuario selecciona un archivo NUEVO ('value' existe)
+              if (value) {
+                return (
+                  <div className="flex items-center justify-between w-full px-4">
+                    <div className="flex items-center gap-2 truncate">
+                      <DocumentTextIcon className="size-6 text-primary-600 dark:text-primary-400" />
+                      <span className="truncate text-gray-700 dark:text-dark-100">
+                        {value.name} {/* Muestra el nombre del archivo nuevo */}
+                      </span>
+                    </div>
+                    <Button onClick={onRemove} className="size-6 shrink-0 rounded-full border p-0 dark:border-dark-450">
+                      <XMarkIcon className="size-4" />
+                    </Button>
                   </div>
-                </div>
-              ) : (
-                <Button
-                  unstyled
-                  className="h-full w-full shrink-0 flex-col space-x-2 px-3"
-                  {...props}
-                >
-                  <CloudArrowUpIcon className="pointer-events-none size-10" />
-                  <span className="pointer-events-none mt-2 text-gray-600 dark:text-dark-200">
-                    <span className="text-primary-600 dark:text-primary-400">
-                      Browse
+                );
+              } 
+              
+              // 2. Si NO hay archivo nuevo, pero SÍ hay uno EXISTENTE
+              else if (existingFile) {
+                return (
+                  <div className="flex items-center justify-between w-full px-4">
+                    {/* El enlace para ver el PDF */}
+                    <div className="flex items-center gap-2 truncate">
+                      <DocumentTextIcon className="size-6 text-primary-600 dark:text-primary-400" />
+                      <a
+                        href={existingFile}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="truncate text-gray-700 dark:text-dark-100 underline"
+                      >
+                        Ver PDF {/* Arreglamos el texto */}
+                      </a>
+                    </div>
+                    
+                    {/*ESTE ES EL BOTÓN de REEMPLZAR */}
+                    <Button
+                      color="secondary"
+                      size="sm"
+                      className="shrink-0"
+                      type="button"
+                      {...props} // Usa los props de useDropzone para abrir el diálogo de archivos
+                    >
+                      Reemplazar
+                    </Button>
+                  </div>
+                );
+              } 
+              
+              // 3. Si no hay ni nuevo ni existente, muestra el botón para subir
+              else {
+                return (
+                  <Button
+                    unstyled
+                    className="h-full w-full shrink-0 flex-col space-x-2 px-3"
+                    {...props}
+                  >
+                    <CloudArrowUpIcon className="pointer-events-none size-10" />
+                    <span className="pointer-events-none mt-2 text-gray-600 dark:text-dark-200">
+                      <span className="text-primary-600 dark:text-primary-400">
+                        Browse
+                      </span>
+                      <span> or drop your PDF here</span>
                     </span>
-                    <span> or drop your PDF here</span>
-                  </span>
-                </Button>
-              )
-            }
+                  </Button>
+                );
+              }
+            }}
           </Upload>
         </div>
 

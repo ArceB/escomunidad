@@ -21,7 +21,11 @@ export const schema = Yup.object().shape({
     .required("Descripción requerida")
     .test("notEmpty", "La descripción no puede estar vacía", isDeltaNotEmpty),
   banner: Yup.mixed().nullable()
-    .required("Debes subir una imagen"),
+    .when("$isEditing", { // Revisa el contexto que pasamos
+      is: (isEditing) => isEditing === true, // Si isEditing es verdadero...
+      then: (schema) => schema.notRequired(),  // ...el banner NO es requerido
+      otherwise: (schema) => schema.required("Debes subir una imagen"), // Si no (es nuevo), SÍ es requerido
+    }),
   archivo_pdf: Yup.mixed()
     .nullable()
     .test("fileType", "Solo se permiten archivos PDF", (value) =>
