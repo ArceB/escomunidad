@@ -50,6 +50,18 @@ class Entidad(models.Model):
 
     def __str__(self):
         return self.nombre
+    
+    def delete(self, *args, **kwargs):
+        # 1. Borra la foto de portada DE LA ENTIDAD
+        if self.foto_portada:
+            self.foto_portada.delete(save=False) # 👈 AÑADIMOS ESTA LÍNEA
+
+        # 2. Borra todos los archivos de los anuncios hijos
+        for anuncio in self.anuncios.all():
+            anuncio.delete() # Esto ejecuta el .delete() del Anuncio
+
+        # 3. Borra la Entidad de la base de datos
+        super().delete(*args, **kwargs)
 
 # ======================================================
 # Anuncio 
@@ -68,6 +80,18 @@ class Anuncio(models.Model):
 
     def __str__(self):
         return self.titulo
+    
+    def delete(self, *args, **kwargs):
+        # 1. Borra el archivo banner del storage (media/anuncios/banners/)
+        if self.banner:
+            self.banner.delete(save=False)
+
+        # 2. Borra el archivo PDF del storage (media/anuncios/pdfs/)
+        if self.archivo_pdf:
+            self.archivo_pdf.delete(save=False)
+
+        # 3. Llama al método delete() original para borrar el anuncio de la BD
+        super().delete(*args, **kwargs)
 
 
 
