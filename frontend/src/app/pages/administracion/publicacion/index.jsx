@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import NavBar from "app/layouts/MainLayout/NavBar";
 import { Card } from "components/ui";
+import { Helmet } from "react-helmet-async";
+
 
 // Local Imports
 import { Page } from "components/shared/Page";
@@ -47,29 +49,41 @@ export default function PublicacionPage() {
   const estado = anuncio ? anuncio.estado : "pendiente";
 
   return (
-    <Page title="Administración - Publicación">
-      <NavBar showNotifications />
-      <main className="transition-content w-full px-(--margin-x) pt-24 pb-8">
-        <Card className="p-4 lg:p-6">
-          <PostHeader
-            anuncio={anuncio}
-            onStatusChange={(action) => {
-              setAnuncio((prev) => ({
-                ...prev,
-                estado: action === "aprobar" ? "aprobado" : "rechazado",
-              }));
-            }}
-            estado={estado}
-          />
-          {anuncio ? (
-            <PostContent anuncio={anuncio} />
-          ) : (
-            <p>No se encontró el anuncio.</p>
-          )}
-        </Card>
+    <>
+      {anuncio && (
+        <Helmet>
+          <title>{anuncio.titulo} | Escomunidad</title>
+          <meta property="og:title" content={anuncio.titulo} />
+          <meta property="og:description" content={anuncio.frase || "Consulta este anuncio importante"} />
+          <meta property="og:image" content={anuncio.banner || "/default-banner.png"} />
+          <meta property="og:url" content={window.location.href} />
+          <meta property="og:type" content="article" />
+        </Helmet>
+      )}
+      <Page title="Administración - Publicación">
+        <NavBar showNotifications />
+        <main className="transition-content w-full px-(--margin-x) pt-24 pb-8">
+          <Card className="p-4 lg:p-6">
+            <PostHeader
+              anuncio={anuncio}
+              onStatusChange={(action) => {
+                setAnuncio((prev) => ({
+                  ...prev,
+                  estado: action === "aprobar" ? "aprobado" : "rechazado",
+                }));
+              }}
+              estado={estado}
+            />
+            {anuncio ? (
+              <PostContent anuncio={anuncio} />
+            ) : (
+              <p>No se encontró el anuncio.</p>
+            )}
+          </Card>
 
-        {!isAuthenticated && <RecentArticles />}
-      </main>
-    </Page>
+          {!isAuthenticated && <RecentArticles />}
+        </main>
+      </Page>
+    </>
   );
 }

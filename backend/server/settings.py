@@ -41,6 +41,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    "middleware.prerender_middleware.PrerenderMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "corsheaders.middleware.CorsMiddleware",   # 👈 importante: después de SecurityMiddleware
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -154,3 +155,6 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 DEFAULT_FROM_EMAIL = "no-reply@tusitio.com"
+PRERENDER_URL = "https://service.prerender.io/"
+PRERENDER_TOKEN = "IS7CiIA2Ja8NzxKv8Fa2"  # 👈 colócalo desde tu cuenta de prerender.io
+

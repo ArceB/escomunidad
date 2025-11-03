@@ -14,7 +14,7 @@ import axios from "utils/axios";
 import { BookmarkIcon } from "@heroicons/react/24/outline";
 //import clsx from "clsx";
 import { Fragment } from "react";
-import { FaFacebook, FaInstagram, FaLinkedin, FaTwitter } from "react-icons/fa";
+import { FaFacebook, FaLinkedin, FaTwitter, FaWhatsapp } from "react-icons/fa";
 
 // Local Imports
 import { useHover } from "hooks";
@@ -55,6 +55,33 @@ export function PostHeader({ anuncio, onStatusChange, estado }) {
       setLoading(false);
     }
   };
+
+  const handleShare = (platform) => {
+    const url = encodeURIComponent(window.location.href);
+    const title = encodeURIComponent(anuncio?.titulo || "Mira este anuncio");
+
+    let shareUrl = "";
+
+    switch (platform) {
+      case "twitter":
+        shareUrl = `https://twitter.com/intent/tweet?text=${title}&url=${url}`;
+        break;
+      case "linkedin":
+        shareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${url}`;
+        break;
+      case "facebook":
+        shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${title}`;
+        break;
+      case "whatsapp":
+        shareUrl = `https://api.whatsapp.com/send?text=${title}%20${url}`;
+        break;
+      default:
+        return;
+    }
+
+    window.open(shareUrl, "_blank", "noopener,noreferrer");
+  };
+
 
   const { isAuthenticated, role } = useAuthContext();
   return (
@@ -100,6 +127,7 @@ export function PostHeader({ anuncio, onStatusChange, estado }) {
                   isIcon
                   variant="flat"
                   className="size-8 rounded-full"
+                  onClick={() => handleShare("twitter")}
                 >
                   <FaTwitter className="size-4.5" />
                 </Button>
@@ -109,6 +137,7 @@ export function PostHeader({ anuncio, onStatusChange, estado }) {
                   isIcon
                   variant="flat"
                   className="size-8 rounded-full"
+                  onClick={() => handleShare("linkedin")}
                 >
                   <FaLinkedin className="size-4.5" />
                 </Button>
@@ -118,8 +147,9 @@ export function PostHeader({ anuncio, onStatusChange, estado }) {
                   isIcon
                   variant="flat"
                   className="size-8 rounded-full"
+                  onClick={() => handleShare("facebook")}
                 >
-                  <FaInstagram className="size-4.5" />
+                  <FaFacebook className="size-4.5" />
                 </Button>
                 <Button
                   component="a"
@@ -127,8 +157,9 @@ export function PostHeader({ anuncio, onStatusChange, estado }) {
                   isIcon
                   variant="flat"
                   className="size-8 rounded-full"
+                  onClick={() => handleShare("whatsapp")}
                 >
-                  <FaFacebook className="size-4.5" />
+                  <FaWhatsapp className="size-4.5" />
                 </Button>
               </div>
             )}
@@ -168,13 +199,6 @@ export function PostHeader({ anuncio, onStatusChange, estado }) {
       </div>
       {!isAuthenticated && (
         <div className="mt-6 flex items-center gap-3 sm:hidden">
-          <Button
-            variant="outlined"
-            className="space-x-2 rounded-full "
-          >
-            <BookmarkIcon className="size-4.5 text-gray-400 dark:text-gray-300" />
-            <span> Save</span>
-          </Button>
           <div className="flex flex-wrap">
             <Button
               component="a"
@@ -191,6 +215,7 @@ export function PostHeader({ anuncio, onStatusChange, estado }) {
               isIcon
               variant="flat"
               className="size-8 rounded-full"
+              onClick={() => handleShare("twitter")}
             >
               <FaTwitter className="size-4.5" />
             </Button>
@@ -200,17 +225,20 @@ export function PostHeader({ anuncio, onStatusChange, estado }) {
               isIcon
               variant="flat"
               className="size-8 rounded-full"
+              onClick={() => handleShare("linkedin")}
             >
               <FaLinkedin className="size-4.5" />
             </Button>
+            
             <Button
               component="a"
               href="#"
               isIcon
               variant="flat"
               className="size-8 rounded-full"
+              onClick={() => handleShare("facebook")}
             >
-              <FaInstagram className="size-4.5" />
+              <FaFacebook className="size-4.5" />
             </Button>
             <Button
               component="a"
@@ -218,8 +246,9 @@ export function PostHeader({ anuncio, onStatusChange, estado }) {
               isIcon
               variant="flat"
               className="size-8 rounded-full"
+              onClick={() => handleShare("whatsapp")}
             >
-              <FaFacebook className="size-4.5" />
+              <FaWhatsapp className="size-4.5" />
             </Button>
           </div>
         </div>

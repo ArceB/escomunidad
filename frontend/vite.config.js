@@ -11,4 +11,11 @@ export default defineConfig({
   plugins: [react(), jsconfigPaths(), svgr(),
   eslint(), tailwindcss(),
   ],
+  server: {
+    host: true, // permite accesos externos
+    allowedHosts: [
+      'pestilent-likely-chere.ngrok-free.dev'
+    ],
+    port: 5173,
+  },
 })

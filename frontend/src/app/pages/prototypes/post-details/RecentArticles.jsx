@@ -93,9 +93,9 @@ function PostCard({
       className="flex flex-col lg:flex-row cursor-pointer transition hover:shadow-md"
       onClick={onClick}
     >
-      <div className="relative h-48 w-full shrink-0 lg:h-auto lg:w-48">
+      <div className="relative w-full shrink-0 lg:h-auto lg:w-48 aspect-[19/6] ">
         <img
-          className="h-48 w-full rounded-t-lg object-cover object-center lg:h-full lg:ltr:rounded-l-lg lg:ltr:rounded-tr-none lg:rtl:rounded-r-lg lg:rtl:rounded-tl-none"
+          className="w-full rounded-t-lg object-cover object-center lg:h-full lg:ltr:rounded-l-lg lg:ltr:rounded-tr-none lg:rtl:rounded-r-lg lg:rtl:rounded-tl-none aspect-[19/6] "
           src={cover || "/images/800x600.png"}
           alt={title}
         />

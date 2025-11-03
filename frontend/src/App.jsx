@@ -1,5 +1,6 @@
 // Import Dependencies
 import { RouterProvider } from "react-router";
+import { HelmetProvider } from "react-helmet-async";
 
 // Local Imports
 import { AuthProvider } from "app/contexts/auth/Provider";
@@ -8,26 +9,26 @@ import { LocaleProvider } from "app/contexts/locale/Provider";
 import { SidebarProvider } from "app/contexts/sidebar/Provider";
 import { ThemeProvider } from "app/contexts/theme/Provider";
 import router from "app/router/router";
-
-// 👇 Importa tu chat flotante
 import FloatingChat from "app/pages/apps/ai-chat/FloatingChat";
 
 // ----------------------------------------------------------------------
 
 function App() {
   return (
-    <AuthProvider>
-      <ThemeProvider>
-        <LocaleProvider>
-          <BreakpointProvider>
-            <SidebarProvider>
-              <RouterProvider router={router} />
-              <FloatingChat />
-            </SidebarProvider>
-          </BreakpointProvider>
-        </LocaleProvider>
-      </ThemeProvider>
-    </AuthProvider>
+    <HelmetProvider>
+      <AuthProvider>
+        <ThemeProvider>
+          <LocaleProvider>
+            <BreakpointProvider>
+              <SidebarProvider>
+                <RouterProvider router={router} />
+                <FloatingChat />
+              </SidebarProvider>
+            </BreakpointProvider>
+          </LocaleProvider>
+        </ThemeProvider>
+      </AuthProvider>
+    </HelmetProvider>
   );
 }
 
