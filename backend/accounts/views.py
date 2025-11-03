@@ -1,4 +1,6 @@
 import os
+import re
+import unicodedata
 
 from rest_framework import viewsets, mixins, serializers, status
 from rest_framework.decorators import action
@@ -18,10 +20,17 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.enums import TA_JUSTIFY
 from reportlab.lib.units import inch
 
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.pdfbase import pdfmetrics
+import html
+from django.utils.html import escape
+
 from textwrap import wrap
 
 from django.core.mail import send_mail
 from django.conf import settings
+from django.utils.html import strip_tags
+from django.utils.safestring import mark_safe
 
 from .models import Anuncio, Entidad
 from .serializers import AnuncioSerializer
@@ -39,6 +48,9 @@ from .serializers import (
     AprobacionResponsableSerializer, AprobacionAdministradorSerializer,
     GestionEntidadSerializer, ResponsableEntidadSerializer, CrearUsuarioSerializer, ResetPasswordSerializer
 )
+
+# Registrar fuente Unicode compatible con acentos y eñes
+pdfmetrics.registerFont(TTFont('DejaVuSans', 'C:\\Windows\\Fonts\\arial.ttf'))
 
 
 # ---------- AUTH ----------
@@ -287,14 +299,80 @@ class AnuncioViewSet(viewsets.ModelViewSet):
         if anuncio.estado == "aprobado":
             self.generar_pdf_anuncio(anuncio)
 
+    def sanitize_html_for_pdf(self, html_text):
+        """
+        Limpia y normaliza HTML para ser seguro con ReportLab.
+        - Elimina atributos (style, class, etc.)
+        - Permite solo etiquetas básicas
+        - Asegura que las etiquetas estén balanceadas
+        - Normaliza acentos y caracteres especiales
+        """
+        if not html_text:
+            return ""
+
+        # 1️⃣ Decodificar entidades HTML (&aacute;, &ntilde;, etc.)
+        html_text = html.unescape(html_text)
+
+        # 2️⃣     Normalizar codificación (acentos, tildes, etc.)
+        html_text = unicodedata.normalize("NFKC", html_text)
+
+        # 3️⃣ Quitar atributos dentro de etiquetas (<b style="..."> -> <b>)
+        html_text = re.sub(r'<(\w+)(\s+[^>]*)>', r'<\1>', html_text)
+
+        # 4️⃣ Dejar solo etiquetas permitidas
+        allowed_tags = ['b', 'i', 'u', 'br', 'strong', 'em']
+        html_text = re.sub(
+            r'</?(?!(' + '|'.join(allowed_tags) + r')\b)[^>]*>',
+            '',
+            html_text
+        )
+
+        # 5️⃣ Normalizar etiquetas equivalentes
+        html_text = html_text.replace('<strong>', '<b>').replace('</strong>', '</b>')
+        html_text = html_text.replace('<em>', '<i>').replace('</em>', '</i>')
+
+        # 6️⃣ Asegurar que todas las etiquetas estén cerradas
+        for tag in ['b', 'i', 'u']:
+            open_count = len(re.findall(f'<{tag}>', html_text))
+            close_count = len(re.findall(f'</{tag}>', html_text))
+            if open_count > close_count:
+                html_text += f'</{tag}>' * (open_count - close_count)
+
+        # 7️⃣ Reemplazar saltos de línea y espacios
+        html_text = html_text.replace('\n', '<br/>').replace('&nbsp;', ' ')
+
+        # 8️⃣ Quitar caracteres no imprimibles
+        html_text = ''.join(ch for ch in html_text if ch.isprintable() or ch in '\n\r\t')
+
+        return html_text.strip()
+    
+    def perform_update(self, serializer):
+        anuncio = serializer.save()
+
+        # 🧠 Si el anuncio está aprobado, regenerar PDF informativo
+        if anuncio.estado == "aprobado":
+            self.generar_pdf_anuncio(anuncio)
+
     def generar_pdf_anuncio(self, anuncio):
-        """Genera un PDF bien formateado con texto largo justificado."""
-        pdf_dir = os.path.join(settings.MEDIA_ROOT, "anuncios", "informacion")
+        import unicodedata, html, re
+        from reportlab.lib.pagesizes import letter
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.enums import TA_JUSTIFY
+        from reportlab.lib.units import inch
+        import os
+
+        BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        pdf_dir = os.path.join(BASE_DIR, "chatbot", "documents")
         os.makedirs(pdf_dir, exist_ok=True)
 
         pdf_path = os.path.join(pdf_dir, f"info_anuncio_{anuncio.id}.pdf")
 
-        # Crear documento
+        # 🧹 Eliminar versión anterior si existe
+        if os.path.exists(pdf_path):
+            os.remove(pdf_path)
+
+        # Generar el nuevo PDF
         doc = SimpleDocTemplate(
             pdf_path,
             pagesize=letter,
@@ -306,35 +384,32 @@ class AnuncioViewSet(viewsets.ModelViewSet):
 
         styles = getSampleStyleSheet()
         styles.add(ParagraphStyle(name="Justify", alignment=TA_JUSTIFY, leading=16))
-
         content = []
 
-        # Título principal
         content.append(Paragraph(f"<b>Información de</b> {anuncio.titulo}", styles["Heading2"]))
         content.append(Spacer(1, 12))
-
-        # Información básica
         if anuncio.frase:
             content.append(Paragraph(f"<b>Frase:</b> {anuncio.frase}", styles["Normal"]))
         content.append(Spacer(1, 10))
 
-        # Descripción (larga y justificada)
-        descripcion = anuncio.descripcion or "---"
+        clean_desc = self.sanitize_html_for_pdf(anuncio.descripcion or "---")
         content.append(Paragraph("<b>Descripción:</b>", styles["Normal"]))
-        content.append(Paragraph(descripcion.replace("\n", "<br/>"), styles["Justify"]))
-        content.append(Spacer(1, 12))
 
-        # Fechas y datos adicionales
+        try:
+            content.append(Paragraph(clean_desc, styles["Justify"]))
+        except Exception:
+            import re
+            safe_text = re.sub(r"<[^>]+>", "", clean_desc)
+            content.append(Paragraph(safe_text, styles["Justify"]))
+
+        content.append(Spacer(1, 12))
         content.append(Paragraph(f"<b>Entidad:</b> {anuncio.entidad.nombre}", styles["Normal"]))
         content.append(Paragraph(f"<b>Fecha inicio:</b> {anuncio.fecha_inicio or '---'}", styles["Normal"]))
         content.append(Paragraph(f"<b>Fecha fin:</b> {anuncio.fecha_fin or '---'}", styles["Normal"]))
 
-        # Construir el PDF
         doc.build(content)
 
-        # Guardar referencia en el modelo
-        anuncio.archivo_pdf.name = f"anuncios/informacion/info_anuncio_{anuncio.id}.pdf"
-        anuncio.save(update_fields=["archivo_pdf"])
+        print(f"✅ PDF informativo actualizado: {pdf_path}")
 
     @action(detail=False, methods=["get"], permission_classes=[AllowAny])
     def public(self, request):

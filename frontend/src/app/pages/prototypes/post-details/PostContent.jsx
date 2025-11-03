@@ -1,5 +1,5 @@
 import PropTypes from "prop-types";
-import {  DocumentTextIcon } from "@heroicons/react/24/outline";
+import { DocumentTextIcon } from "@heroicons/react/24/outline";
 
 export function PostContent({ anuncio }) {
   return (
@@ -8,13 +8,15 @@ export function PostContent({ anuncio }) {
         {anuncio.titulo}
       </h1>
       <h3 className="mt-1">{anuncio.frase}</h3>
-      
+
       {anuncio.banner && (
-        <img
-          className="mt-5 h-80 w-full rounded-lg object-cover object-center"
-          src={anuncio.banner}
-          alt={anuncio.titulo}
-        />
+        <section className="relative w-full aspect-[19/6] overflow-hidden">
+          <img
+            className="mt-5 w-full rounded-lg object-cover object-center"
+            src={anuncio.banner}
+            alt={anuncio.titulo}
+          />
+        </section>
       )}
 
       {anuncio.descripcion && (
@@ -26,7 +28,7 @@ export function PostContent({ anuncio }) {
 
       {anuncio.archivo_pdf && (
         <div className="mt-6 flex items-center">
-          <DocumentTextIcon className="mr-2 size-6 text-primary-600 dark:text-primary-400" /> 
+          <DocumentTextIcon className="mr-2 size-6 text-primary-600 dark:text-primary-400" />
           <a
             href={anuncio.archivo_pdf}
             target="_blank"

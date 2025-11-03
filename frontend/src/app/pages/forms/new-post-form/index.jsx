@@ -6,6 +6,7 @@ import { Controller, useForm } from "react-hook-form";
 import { DocumentPlusIcon } from "@heroicons/react/24/outline";
 import { toast } from "sonner";
 import axios from "utils/axios";
+import Quill from "quill";
 
 // Local Imports
 import { schema } from "./schema";
@@ -44,12 +45,24 @@ const editorModules = {
     [{ align: [] }, "image"],
     ["clean"],
   ],
+  clipboard: {
+    matchers: [
+      ['A', (node, delta) => {
+        delta.ops.forEach(op => {
+          if (op.insert && typeof op.insert === 'string') {
+            op.attributes = op.attributes || {};
+            op.attributes.link = node.getAttribute('href');
+          }
+        });
+        return delta;
+      }],
+    ],
+  },
 };
 
 const NewPostForm = ({ entidadId }) => {
   console.log("Entidad ID recibido en formulario:", entidadId);
-
-  const { anuncioId } = useParams(); // Obtener el ID del anuncio desde la URL}
+  const { anuncioId } = useParams(); // Obtener el ID del anuncio desde la URL
   const [existingCover, setExistingCover] = useState(null);
   const [existingPdf, setExistingPdf] = useState(null);
   const navigate = useNavigate();
@@ -76,7 +89,9 @@ const NewPostForm = ({ entidadId }) => {
         reset({
           titulo: anuncio.titulo || "",
           frase: anuncio.frase || "",
-          descripcion: anuncio.descripcion ? new Delta([{ insert: anuncio.descripcion }]) : new Delta(),
+          descripcion: anuncio.descripcion
+            ? new Delta([{ insert: anuncio.descripcion }])
+            : new Delta(),
           banner: null,
           archivo_pdf: null,
           fecha_inicio: anuncio.fecha_inicio || "",
@@ -99,10 +114,11 @@ const NewPostForm = ({ entidadId }) => {
       const formData = new FormData();
       formData.append("titulo", data.titulo);
       formData.append("frase", data.frase);
-      formData.append(
-        "descripcion",
-        data.descripcion.ops.map((op) => op.insert).join("")
-      );
+      const tempQuill = new Quill(document.createElement("div"));
+      tempQuill.setContents(data.descripcion);
+      const descripcionHTML = tempQuill.root.innerHTML;
+
+      formData.append("descripcion", descripcionHTML);
 
       if (data.fecha_inicio) {
         formData.append(
@@ -125,28 +141,30 @@ const NewPostForm = ({ entidadId }) => {
 
       const token = sessionStorage.getItem("authToken");
 
-
       if (anuncioId) {
-        // Si estamos editando, hacemos un PUT
-        await axios.put(`http://localhost:8000/api/anuncios/${anuncioId}/`, formData, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "multipart/form-data",
-          },
-        });
-
+        // Editar anuncio existente
+        await axios.put(
+          `http://localhost:8000/api/anuncios/${anuncioId}/`,
+          formData,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "multipart/form-data",
+            },
+          }
+        );
         toast.success("Anuncio actualizado con éxito 🚀");
       } else {
-        // Si estamos creando, hacemos un POST
+        // Crear nuevo anuncio
         await axios.post("http://localhost:8000/api/anuncios/", formData, {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "multipart/form-data",
           },
         });
-
         toast.success("Anuncio creado con éxito 🚀");
       }
+
       navigate(`/administracion/entidades/${entidadId}/anuncios`);
     } catch (err) {
       console.error("Error al crear o editar anuncio:", err.response || err);
@@ -155,7 +173,7 @@ const NewPostForm = ({ entidadId }) => {
   };
 
   return (
-    <Page ttitle={anuncioId ? "Editar Anuncio" : "Nuevo Anuncio"}>
+    <Page title={anuncioId ? "Editar Anuncio" : "Nuevo Anuncio"}>
       <div className="transition-content px-(--margin-x) pb-6">
         <div className="flex flex-col items-center justify-between space-y-4 py-5 sm:flex-row sm:space-y-0 lg:py-6">
           <div className="flex items-center gap-1">
@@ -175,7 +193,12 @@ const NewPostForm = ({ entidadId }) => {
             </Button>
           </div>
         </div>
-        <form autoComplete="off" onSubmit={handleSubmit(onSubmit)} id="new-post-form">
+
+        <form
+          autoComplete="off"
+          onSubmit={handleSubmit(onSubmit)}
+          id="new-post-form"
+        >
           <div className="grid grid-cols-12 place-content-start gap-4 sm:gap-5 lg:gap-6">
             <div className="col-span-12 lg:col-span-8">
               <Card className="p-4 sm:px-5">
@@ -186,7 +209,6 @@ const NewPostForm = ({ entidadId }) => {
                     {...register("titulo")}
                     error={errors?.titulo?.message}
                   />
-
                   <Input
                     label="Frase"
                     placeholder="Ingrese una frase para el anuncio"
@@ -261,7 +283,6 @@ const NewPostForm = ({ entidadId }) => {
                   control={control}
                   name="fecha_inicio"
                 />
-
                 <Controller
                   render={({ field: { onChange, value, ...rest } }) => (
                     <DatePicker

@@ -159,7 +159,7 @@ function ActionMenu({ mostrandoPendientes }) {
               )}
             </MenuItem>
           )}
-          {(role === "admin" || role === "superadmin" || role == "responsable") && (
+          {(role == "responsable") && (
             <MenuItem>
               {({ focus }) => (
                 <button

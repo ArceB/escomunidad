@@ -1,5 +1,6 @@
 // Import Dependencies
 import PropTypes from "prop-types";
+import { EditIcon, TrashIcon } from 'lucide-react';
 import {
   //Menu,
   //MenuButton,
@@ -20,11 +21,18 @@ import { useHover } from "hooks";
 import { Avatar, Button } from "components/ui";
 import { useAuthContext } from "app/contexts/auth/context";
 import { toast } from "sonner";
+import { useNavigate } from "react-router";
+
+import { DeleteAnnouncementModal } from "app/pages/components/modal/DeleteAnnouncementModal";
 
 // ----------------------------------------------------------------------
 
-export function PostHeader({ anuncioId, onStatusChange, estado }) {
+export function PostHeader({ anuncio, onStatusChange, estado }) {
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const anuncioId = anuncio?.id;
+
 
   const handleAction = async (action) => {
     setLoading(true);
@@ -61,69 +69,99 @@ export function PostHeader({ anuncioId, onStatusChange, estado }) {
               <Button color="success"
                 className="mt-6 w-full space-x-2 "
                 onClick={() => handleAction("aprobar")}
-              loading={loading}>
-                  
+                loading={loading}>
+
                 Aceptar
               </Button>
               <Button color="error"
                 className="mt-6 w-full space-x-2 "
                 onClick={() => handleAction("rechazar")}
-              loading={loading}>
-                  
+                loading={loading}>
+
                 Rechazar
               </Button>
             </div>
           )}
-          {!isAuthenticated && (
-            <div className="flex max-sm:hidden">
-              <Button
-                component="a"
-                href="#"
-                isIcon
-                variant="flat"
-                className="size-8 rounded-full"
-              >
-                <BookmarkIcon className="size-5" />
-              </Button>
-              <Button
-                component="a"
-                href="#"
-                isIcon
-                variant="flat"
-                className="size-8 rounded-full"
-              >
-                <FaTwitter className="size-4.5" />
-              </Button>
-              <Button
-                component="a"
-                href="#"
-                isIcon
-                variant="flat"
-                className="size-8 rounded-full"
-              >
-                <FaLinkedin className="size-4.5" />
-              </Button>
-              <Button
-                component="a"
-                href="#"
-                isIcon
-                variant="flat"
-                className="size-8 rounded-full"
-              >
-                <FaInstagram className="size-4.5" />
-              </Button>
-              <Button
-                component="a"
-                href="#"
-                isIcon
-                variant="flat"
-                className="size-8 rounded-full"
-              >
-                <FaFacebook className="size-4.5" />
-              </Button>
-            </div>
+          <div className="flex max-sm:hidden">
+            {!isAuthenticated && (
+              <div className="flex max-sm:hidden">
+                <Button
+                  component="a"
+                  href="#"
+                  isIcon
+                  variant="flat"
+                  className="size-8 rounded-full"
+                >
+                  <BookmarkIcon className="size-5" />
+                </Button>
+                <Button
+                  component="a"
+                  href="#"
+                  isIcon
+                  variant="flat"
+                  className="size-8 rounded-full"
+                >
+                  <FaTwitter className="size-4.5" />
+                </Button>
+                <Button
+                  component="a"
+                  href="#"
+                  isIcon
+                  variant="flat"
+                  className="size-8 rounded-full"
+                >
+                  <FaLinkedin className="size-4.5" />
+                </Button>
+                <Button
+                  component="a"
+                  href="#"
+                  isIcon
+                  variant="flat"
+                  className="size-8 rounded-full"
+                >
+                  <FaInstagram className="size-4.5" />
+                </Button>
+                <Button
+                  component="a"
+                  href="#"
+                  isIcon
+                  variant="flat"
+                  className="size-8 rounded-full"
+                >
+                  <FaFacebook className="size-4.5" />
+                </Button>
+              </div>
+            )}
+            {(role === "superadmin" || role === "admin" || role === "responsable") && (
+              <div className="mt-3 text-end">
+                <Button
+                  data-tooltip
+                  data-tooltip-content="Editar"
+                  unstyled
+                  className="size-7 rounded-full hover:bg-white/20"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/administracion/entidades/${anuncio.entidad}/anuncios/${anuncio.id}/editar`);
+                  }}
+                >
+                  <EditIcon className="size-4.5 stroke-2 stroke-blue-800" />
+                </Button>
+                <Button
+                  data-tooltip
+                  data-tooltip-content="Eliminar"
+                  unstyled
+                  className="size-7 rounded-full hover:bg-white/20"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowDeleteModal(true);
+                  }}
+                >
+                  <TrashIcon className="size-4.5 stroke-2 stroke-blue-800" />
+                </Button>
+              </div>
+            )}
+          </div>
 
-          )}
           {/** 
           <ActionMenu />*/}
         </div>
@@ -186,6 +224,13 @@ export function PostHeader({ anuncioId, onStatusChange, estado }) {
           </div>
         </div>
       )}
+      {showDeleteModal && (
+        <DeleteAnnouncementModal
+          anuncioId={anuncio.id}
+          anuncioTitle={anuncio.titulo}
+          onDeleted={() => setShowDeleteModal(false)}
+        />
+      )}
     </div>
   );
 }
@@ -242,88 +287,6 @@ function AuthorAvatar({ name, image, username }) {
     </div>
   );
 }
-
-/*function ActionMenu() {
-  return (
-    <Menu as="div" className="relative inline-block text-left">
-      <MenuButton
-        as={Button}
-        variant="flat"
-        isIcon
-        className="size-8 rounded-full ltr:-mr-1.5 rtl:-ml-1.5"
-      >
-        <EllipsisHorizontalIcon className="size-4.5" />
-      </MenuButton>
-      <Transition
-        as={Fragment}
-        enter="transition ease-out"
-        enterFrom="opacity-0 translate-y-2"
-        enterTo="opacity-100 translate-y-0"
-        leave="transition ease-in"
-        leaveFrom="opacity-100 translate-y-0"
-        leaveTo="opacity-0 translate-y-2"
-      >
-        <MenuItems className="absolute z-100 mt-1.5 min-w-[10rem] rounded-lg border border-gray-300 bg-white py-1 shadow-lg shadow-gray-200/50 outline-hidden focus-visible:outline-hidden dark:border-dark-500 dark:bg-dark-700 dark:shadow-none ltr:right-0 rtl:left-0">
-          <MenuItem>
-            {({ focus }) => (
-              <button
-                className={clsx(
-                  "flex h-9 w-full items-center px-3 tracking-wide outline-hidden transition-colors",
-                  focus &&
-                    "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
-                )}
-              >
-                <span>Action</span>
-              </button>
-            )}
-          </MenuItem>
-          <MenuItem>
-            {({ focus }) => (
-              <button
-                className={clsx(
-                  "flex h-9 w-full items-center px-3 tracking-wide outline-hidden transition-colors",
-                  focus &&
-                    "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
-                )}
-              >
-                <span>Another action</span>
-              </button>
-            )}
-          </MenuItem>
-          <MenuItem>
-            {({ focus }) => (
-              <button
-                className={clsx(
-                  "flex h-9 w-full items-center px-3 tracking-wide outline-hidden transition-colors",
-                  focus &&
-                    "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
-                )}
-              >
-                <span>Other action</span>
-              </button>
-            )}
-          </MenuItem>
-
-          <hr className="mx-3 my-1.5 h-px border-gray-150 dark:border-dark-500" />
-
-          <MenuItem>
-            {({ focus }) => (
-              <button
-                className={clsx(
-                  "flex h-9 w-full items-center px-3 tracking-wide outline-hidden transition-colors",
-                  focus &&
-                    "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
-                )}
-              >
-                <span>Separated action</span>
-              </button>
-            )}
-          </MenuItem>
-        </MenuItems>
-      </Transition>
-    </Menu>
-  );
-}*/
 
 AuthorAvatar.propTypes = {
   name: PropTypes.string,

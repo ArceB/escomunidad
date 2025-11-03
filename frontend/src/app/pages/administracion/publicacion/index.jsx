@@ -18,7 +18,6 @@ export default function PublicacionPage() {
   const { anuncioId } = useParams();
   const [anuncio, setAnuncio] = useState(null);
   const [loading, setLoading] = useState(true);
-
   const { isAuthenticated } = useAuthContext();
 
   useEffect(() => {
@@ -37,6 +36,7 @@ export default function PublicacionPage() {
         setLoading(false);
       }
     };
+
     if (anuncioId) {
       fetchAnuncio();
     }
@@ -44,29 +44,30 @@ export default function PublicacionPage() {
 
   if (loading) return <p>Cargando anuncio...</p>;
 
-  
-
-  if (loading) return <p>Cargando anuncio...</p>;
   const estado = anuncio ? anuncio.estado : "pendiente";
 
   return (
     <Page title="Administración - Publicación">
       <NavBar showNotifications />
-
       <main className="transition-content w-full px-(--margin-x) pt-24 pb-8">
         <Card className="p-4 lg:p-6">
           <PostHeader
-            anuncioId={anuncioId}
+            anuncio={anuncio}
             onStatusChange={(action) => {
-              setAnuncio(prev => ({ ...prev, estado: action === "aprobar" ? "aprobado" : "rechazado" }));
+              setAnuncio((prev) => ({
+                ...prev,
+                estado: action === "aprobar" ? "aprobado" : "rechazado",
+              }));
             }}
-            estado={estado} />
+            estado={estado}
+          />
           {anuncio ? (
             <PostContent anuncio={anuncio} />
           ) : (
             <p>No se encontró el anuncio.</p>
           )}
         </Card>
+
         {!isAuthenticated && <RecentArticles />}
       </main>
     </Page>

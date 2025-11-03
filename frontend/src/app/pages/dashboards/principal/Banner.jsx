@@ -78,7 +78,7 @@ export function Banner({ entidadId }) {
   };
 
   return (
-    <section className="relative w-full h-[250px] sm:h-[300px] lg:h-[350px] overflow-hidden">
+    <section className="relative w-full aspect-[19/6] overflow-hidden">
       {banners.map((anuncio, index) => (
         <div
           key={anuncio.id}

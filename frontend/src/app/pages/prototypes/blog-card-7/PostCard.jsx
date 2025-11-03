@@ -23,7 +23,7 @@ export function PostCard({ anuncio, cover, category, created_at, title, descript
     <Card className="flex flex-col">
       <img
         src={cover}
-        className="h-48 w-full rounded-t-lg object-cover object-center"
+        className=" w-full rounded-t-lg object-cover object-center aspect-[19/6]"
         alt={title}
       />
       <div className="flex grow flex-col p-4">
