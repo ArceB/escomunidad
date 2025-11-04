@@ -56,11 +56,7 @@ class ChatBot:
         try:
             print("⚙️ Inicializando modelo LLM en OpenRouter...")
             self.modelo = ChatOpenAI(
-<<<<<<< HEAD
                 model="meta-llama/llama-3.3-70b-instruct:free",
-=======
-                model="nvidia/nemotron-nano-12b-v2-vl:free",
->>>>>>> origin/rama-hugo-nueva
                 temperature=0.1,
                 openai_api_key=os.environ["OPENAI_API_KEY"],
                 openai_api_base=os.environ["OPENAI_API_BASE"],
