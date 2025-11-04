@@ -62,8 +62,10 @@ const editorModules = {
 };
 
 const NewPostForm = ({ entidadId }) => {
+
   const { anuncioId } = useParams();
   const [anuncio, setAnuncio] = useState(null); // ✅ estado del anuncio
+
   const [existingCover, setExistingCover] = useState(null);
   const [existingPdf, setExistingPdf] = useState(null);
   const navigate = useNavigate();
@@ -77,6 +79,7 @@ const NewPostForm = ({ entidadId }) => {
   } = useForm({
     resolver: yupResolver(schema),
     defaultValues: initialState,
+    context: { isEditing: isEditing },
   });
 
   // 🔹 Cargar anuncio si estamos en modo edición

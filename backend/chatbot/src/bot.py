@@ -2,7 +2,7 @@ import os
 import time
 from threading import Thread
 from openai import RateLimitError
-
+from django.conf import settings
 from .text_processor import chunk_pdfs
 from .chroma_db import save_to_chroma_db, CHROMA_PATH
 from langchain_chroma import Chroma
@@ -17,14 +17,15 @@ from langchain_core.messages import HumanMessage, AIMessage
 # =========================
 # Configuración de OpenRouter
 # =========================
+
 os.environ["OPENAI_API_KEY"] = "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"  
+
 os.environ["OPENAI_API_BASE"] = "https://openrouter.ai/api/v1"
 
 # =========================
 # Carpeta de PDFs
 # =========================
-BASE_DIR = os.path.dirname(os.path.dirname(__file__))  # → backend/chatbot
-PDFS_DIR = os.path.abspath(os.path.join(BASE_DIR, "documents"))
+PDFS_DIR = os.path.join(settings.MEDIA_ROOT, "anuncios", "pdfs")
 os.makedirs(PDFS_DIR, exist_ok=True)
 
 
@@ -55,7 +56,11 @@ class ChatBot:
         try:
             print("⚙️ Inicializando modelo LLM en OpenRouter...")
             self.modelo = ChatOpenAI(
+<<<<<<< HEAD
                 model="meta-llama/llama-3.3-70b-instruct:free",
+=======
+                model="nvidia/nemotron-nano-12b-v2-vl:free",
+>>>>>>> origin/rama-hugo-nueva
                 temperature=0.1,
                 openai_api_key=os.environ["OPENAI_API_KEY"],
                 openai_api_base=os.environ["OPENAI_API_BASE"],

@@ -92,9 +92,28 @@ class EntidadSerializer(serializers.ModelSerializer):
         return instance
 
 
+# En accounts/serializers.py
+
 class AnuncioSerializer(serializers.ModelSerializer):
+
     comentarios_rechazo = serializers.SerializerMethodField()
     usuario_id = serializers.IntegerField(source="usuario.id", read_only=True)
+    
+    def update(self, instance, validated_data):
+        
+        # 1. Revisa si un 'archivo_pdf' NUEVO viene en la petición
+        if 'archivo_pdf' in validated_data:
+            if instance.archivo_pdf: # Si ya tenía un PDF...
+                instance.archivo_pdf.delete(save=False) # ...bórralo.
+        
+        # 2. Revisa si un 'banner' NUEVO viene en la petición
+        if 'banner' in validated_data:
+            if instance.banner: # Si ya tenía un banner...
+                instance.banner.delete(save=False) # ...bórralo.
+        
+        # 3. Llama al 'update' normal para que guarde los nuevos datos
+        return super().update(instance, validated_data)
+
 
     class Meta:
         model = Anuncio

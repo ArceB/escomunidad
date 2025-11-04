@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Archivos binarios y base de datos local
+*.bin
+*.sqlite3
+backend/chatbot/chroma/
