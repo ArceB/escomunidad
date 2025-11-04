@@ -16,6 +16,7 @@ import { Delta, TextEditor } from "components/shared/form/TextEditor";
 import { CoverImageUpload } from "./components/CoverImageUpload";
 import { PdfUpload } from "./components/PdfUpload";
 import { DatePicker } from "components/shared/form/Datepicker";
+import RechazoDrawer from "app/pages/components/drawer/RechazoDrawer";
 
 // ----------------------------------------------------------------------
 
@@ -47,11 +48,11 @@ const editorModules = {
   ],
   clipboard: {
     matchers: [
-      ['A', (node, delta) => {
-        delta.ops.forEach(op => {
-          if (op.insert && typeof op.insert === 'string') {
+      ["A", (node, delta) => {
+        delta.ops.forEach((op) => {
+          if (op.insert && typeof op.insert === "string") {
             op.attributes = op.attributes || {};
-            op.attributes.link = node.getAttribute('href');
+            op.attributes.link = node.getAttribute("href");
           }
         });
         return delta;
@@ -61,8 +62,8 @@ const editorModules = {
 };
 
 const NewPostForm = ({ entidadId }) => {
-  console.log("Entidad ID recibido en formulario:", entidadId);
-  const { anuncioId } = useParams(); // Obtener el ID del anuncio desde la URL
+  const { anuncioId } = useParams();
+  const [anuncio, setAnuncio] = useState(null); // ✅ estado del anuncio
   const [existingCover, setExistingCover] = useState(null);
   const [existingPdf, setExistingPdf] = useState(null);
   const navigate = useNavigate();
@@ -78,28 +79,31 @@ const NewPostForm = ({ entidadId }) => {
     defaultValues: initialState,
   });
 
+  // 🔹 Cargar anuncio si estamos en modo edición
   useEffect(() => {
     if (!anuncioId) return;
 
     const fetchAnuncio = async () => {
       try {
         const res = await axios.get(`/anuncios/${anuncioId}/`);
-        const anuncio = res.data;
+        const anuncioData = res.data;
+
+        setAnuncio(anuncioData); // ✅ guardamos todo el objeto
 
         reset({
-          titulo: anuncio.titulo || "",
-          frase: anuncio.frase || "",
-          descripcion: anuncio.descripcion
-            ? new Delta([{ insert: anuncio.descripcion }])
+          titulo: anuncioData.titulo || "",
+          frase: anuncioData.frase || "",
+          descripcion: anuncioData.descripcion
+            ? new Delta([{ insert: anuncioData.descripcion }])
             : new Delta(),
           banner: null,
           archivo_pdf: null,
-          fecha_inicio: anuncio.fecha_inicio || "",
-          fecha_fin: anuncio.fecha_fin || "",
+          fecha_inicio: anuncioData.fecha_inicio || "",
+          fecha_fin: anuncioData.fecha_fin || "",
         });
 
-        setExistingCover(anuncio.banner || null);
-        setExistingPdf(anuncio.archivo_pdf || null);
+        setExistingCover(anuncioData.banner || null);
+        setExistingPdf(anuncioData.archivo_pdf || null);
       } catch (err) {
         console.error("Error al cargar el anuncio:", err);
         toast.error("Error al cargar el anuncio ❌");
@@ -114,10 +118,10 @@ const NewPostForm = ({ entidadId }) => {
       const formData = new FormData();
       formData.append("titulo", data.titulo);
       formData.append("frase", data.frase);
+
       const tempQuill = new Quill(document.createElement("div"));
       tempQuill.setContents(data.descripcion);
       const descripcionHTML = tempQuill.root.innerHTML;
-
       formData.append("descripcion", descripcionHTML);
 
       if (data.fecha_inicio) {
@@ -136,32 +140,24 @@ const NewPostForm = ({ entidadId }) => {
       if (data.banner) formData.append("banner", data.banner);
       if (data.archivo_pdf) formData.append("archivo_pdf", data.archivo_pdf);
 
-      console.log("Entidad ID recibido en formulario:", entidadId);
       formData.append("entidad", entidadId);
 
       const token = sessionStorage.getItem("authToken");
+      const headers = {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "multipart/form-data",
+      };
 
       if (anuncioId) {
-        // Editar anuncio existente
-        await axios.put(
-          `http://localhost:8000/api/anuncios/${anuncioId}/`,
-          formData,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "multipart/form-data",
-            },
-          }
-        );
-        toast.success("Anuncio actualizado con éxito 🚀");
+        // Si el anuncio está rechazado, vuelve a "pendiente"
+        if (anuncio?.estado === "rechazado") {
+          formData.append("estado", "pendiente");
+        }
+
+        await axios.put(`/anuncios/${anuncioId}/`, formData, { headers });
+        toast.success("Anuncio actualizado con éxito 🚀 (en revisión)");
       } else {
-        // Crear nuevo anuncio
-        await axios.post("http://localhost:8000/api/anuncios/", formData, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "multipart/form-data",
-          },
-        });
+        await axios.post("/anuncios/", formData, { headers });
         toast.success("Anuncio creado con éxito 🚀");
       }
 
@@ -174,6 +170,14 @@ const NewPostForm = ({ entidadId }) => {
 
   return (
     <Page title={anuncioId ? "Editar Anuncio" : "Nuevo Anuncio"}>
+      {/* ✅ Drawer visible solo si el anuncio está rechazado */}
+      {anuncio?.estado === "rechazado" && (
+        <RechazoDrawer
+          comentario={anuncio.comentarios_rechazo}
+          titulo={anuncio.titulo}
+        />
+      )}
+
       <div className="transition-content px-(--margin-x) pb-6">
         <div className="flex flex-col items-center justify-between space-y-4 py-5 sm:flex-row sm:space-y-0 lg:py-6">
           <div className="flex items-center gap-1">

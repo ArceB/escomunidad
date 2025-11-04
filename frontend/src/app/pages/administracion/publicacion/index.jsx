@@ -13,7 +13,7 @@ import { PostContent } from "app/pages/prototypes/post-details/PostContent";
 import { RecentArticles } from "app/pages/prototypes/post-details/RecentArticles";
 import { PostHeader } from "app/pages/prototypes/post-details/PostHeader";
 import { useAuthContext } from "app/contexts/auth/context";
-
+import RechazoDrawer from "app/pages/components/drawer/RechazoDrawer";
 // ----------------------------------------------------------------------
 
 export default function PublicacionPage() {
@@ -83,6 +83,13 @@ export default function PublicacionPage() {
 
           {!isAuthenticated && <RecentArticles />}
         </main>
+        {/* ✅ Drawer de comentarios de rechazo */}
+        {anuncio?.estado === "rechazado" && (
+          <RechazoDrawer
+            comentario={anuncio.comentarios_rechazo}
+            titulo={anuncio.titulo}
+          />
+        )}
       </Page>
     </>
   );

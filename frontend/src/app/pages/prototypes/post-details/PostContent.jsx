@@ -7,7 +7,13 @@ export function PostContent({ anuncio }) {
       <h1 className="text-xl font-medium text-gray-900 dark:text-dark-50 lg:text-2xl">
         {anuncio.titulo}
       </h1>
+      {anuncio.fecha_inicio && anuncio.fecha_fin && (
+        <p className="mt-1 text-xs">
+          {anuncio.fecha_inicio}&nbsp;&nbsp;&nbsp;&nbsp;||&nbsp;&nbsp;&nbsp;&nbsp;{anuncio.fecha_fin}&nbsp;&nbsp;&nbsp;
+        </p>
+      )}
       <h3 className="mt-1">{anuncio.frase}</h3>
+
 
       {anuncio.banner && (
         <section className="relative w-full aspect-[19/6] overflow-hidden">

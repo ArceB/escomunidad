@@ -1021,6 +1021,18 @@ const protectedRoutes = {
             Component: (await import("app/pages/administracion/anuncios")).default, 
           }),
         },
+        {
+          path: "entidades/:id/anuncios/rechazados",
+          lazy: async () => ({
+            Component: (await import("app/pages/administracion/anuncios")).default, 
+          }),
+        },
+        {
+          path: "entidades/:id/anuncios/pendientes-usuario",
+          lazy: async () => ({
+            Component: (await import("app/pages/administracion/anuncios")).default, 
+          }),
+        },
         // 🟢 Crear anuncio
         {
           path: "entidades/:id/anuncios/nuevo",

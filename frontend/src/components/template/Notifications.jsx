@@ -3,131 +3,65 @@ import {
   Popover,
   PopoverButton,
   PopoverPanel,
-  Tab,
-  TabGroup,
-  TabList,
-  TabPanel,
-  TabPanels,
   Transition,
 } from "@headlessui/react";
 import PropTypes from "prop-types";
 import {
   ArchiveBoxXMarkIcon,
   Cog6ToothIcon,
-  DocumentTextIcon,
-  EnvelopeIcon,
-  ExclamationTriangleIcon,
 } from "@heroicons/react/24/outline";
-import { IoCheckmarkDoneOutline } from "react-icons/io5";
-import clsx from "clsx";
-import { Fragment, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router";
+import { useEffect } from "react";
+import axios from "utils/axios";
 
 // Local Imports
-import { Avatar, AvatarDot, Badge, Button } from "components/ui";
+import { AvatarDot, Badge, Button } from "components/ui";
 import { useThemeContext } from "app/contexts/theme/context";
 import AlarmIcon from "assets/dualicons/alarm.svg?react";
 import GirlEmptyBox from "assets/illustrations/girl-empty-box.svg?react";
 
 // ----------------------------------------------------------------------
 
-const types = {
-  message: {
-    title: "Message",
-    Icon: EnvelopeIcon,
-    color: "info",
-  },
-  task: {
-    title: "Task",
-    Icon: IoCheckmarkDoneOutline,
-    color: "success",
-  },
-  log: {
-    title: "Log",
-    Icon: DocumentTextIcon,
-    color: "neutral",
-  },
-  security: {
-    title: "Security",
-    Icon: ExclamationTriangleIcon,
-    color: "error",
-  },
-};
-
-const fakeNotifications = [
-  {
-    id: 1,
-    title: "User Photo Changed",
-    description: "John Doe changed his avatar photo",
-    type: "log",
-    time: "2 hours ago",
-  },
-  {
-    id: 2,
-    title: "New user registered",
-    description: "Jane Doe has registered",
-    type: "message",
-    time: "2 hours ago",
-  },
-  {
-    id: 3,
-    title: "Security alert",
-    description: "New device login detected ",
-    type: "security",
-    time: "11 hours ago",
-  },
-  {
-    id: 4,
-    title: "Design ERP Completed",
-    description: "Design ERP completed",
-    type: "task",
-    time: "a day ago",
-  },
-  {
-    id: 5,
-    title: "Weekly Report",
-    description: "The weekly report was uploaded",
-    type: "log",
-    time: "2 days ago",
-  },
-  {
-    id: 6,
-    title: "Vercel Conf",
-    description: "Join to online Vercel conference",
-    type: "message",
-    time: "3 days ago",
-  },
-  {
-    id: 7,
-    title: "Images Added",
-    description: "Mores Clarke added new image gallery",
-    type: "log",
-    time: "5 days ago",
-  },
-];
-
-const typesKey = Object.keys(types);
 
 export function Notifications() {
-  const [notifications, setNotifications] = useState(fakeNotifications);
-  const [activeTab, setActiveTab] = useState(0);
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const filteredNotifications = notifications.filter(
-    (notification) => notification.type === Object.keys(types)[activeTab - 1],
-  );
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const token = sessionStorage.getItem("authToken");
+        if (!token) return;
 
-  const removeNotification = (id) => {
-    setNotifications((n) => n.filter((n) => n.id !== id));
-  };
+        const { data } = await axios.get("/notificaciones/", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        // 🔹 Ajustar formato a lo que necesitamos en el front
+        const formatted = data.map((n) => ({
+          id: n.id,
+          mensaje: n.mensaje,
+          fecha: n.fecha,
+          visto: n.visto,
+          anuncio: n.anuncio || null,
+          banner: n.banner || n.anuncio?.banner || null,
+        }));
+
+        setNotifications(formatted);
+      } catch (error) {
+        console.error("❌ Error al cargar notificaciones:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchNotifications();
+  }, []);
+
 
   const clearNotifications = () => {
-    if (activeTab === 0) {
-      setNotifications([]);
-    } else {
-      setNotifications((n) =>
-        n.filter((n) => n.type !== typesKey[activeTab - 1]),
-      );
-    }
+    setNotifications([]);
   };
 
   return (
@@ -165,17 +99,18 @@ export function Notifications() {
                 <div className="flex items-center justify-between px-4 pt-2">
                   <div className="flex items-center gap-2">
                     <h3 className="font-medium text-gray-800 dark:text-dark-100">
-                      Notifications
+                      Notificaciones
                     </h3>
-                    {notifications.length > 0 && (
+                    {!loading && notifications.length > 0 && (
                       <Badge
                         color="primary"
                         className="h-5 rounded-full px-1.5"
                         variant="soft"
                       >
-                        {notifications.length}
+                        {notifications.length > 99 ? "99+" : notifications.length}
                       </Badge>
                     )}
+
                   </div>
                   <Button
                     component={Link}
@@ -189,87 +124,25 @@ export function Notifications() {
                   </Button>
                 </div>
               </div>
-              <TabGroup
-                as={Fragment}
-                selectedIndex={activeTab}
-                onChange={setActiveTab}
-              >
-                <TabList className="hide-scrollbar flex shrink-0 overflow-x-auto scroll-smooth bg-gray-100 px-3 dark:bg-dark-800">
-                  <Tab
-                    onFocus={(e) => {
-                      e.target.parentNode.scrollLeft =
-                        e.target.offsetLeft -
-                        e.target.parentNode.offsetWidth / 2;
-                    }}
-                    className={({ selected }) =>
-                      clsx(
-                        "shrink-0 scroll-mx-16 whitespace-nowrap border-b-2 px-3 py-2 font-medium",
-                        selected
-                          ? "border-primary-600 text-primary-600 dark:border-primary-500 dark:text-primary-400"
-                          : "border-transparent hover:text-gray-800 focus:text-gray-800 dark:hover:text-dark-100 dark:focus:text-dark-100",
-                      )
-                    }
-                    as={Button}
-                    unstyled
-                  >
-                    All
-                  </Tab>
-                  {typesKey.map((key) => (
-                    <Tab
-                      onFocus={(e) => {
-                        e.target.parentNode.scrollLeft =
-                          e.target.offsetLeft -
-                          e.target.parentNode.offsetWidth / 2;
-                      }}
-                      key={key}
-                      className={({ selected }) =>
-                        clsx(
-                          "shrink-0 scroll-mx-16 whitespace-nowrap border-b-2 px-3 py-2 font-medium",
-                          selected
-                            ? "border-primary-600 text-primary-600 dark:border-primary-500 dark:text-primary-400"
-                            : "border-transparent hover:text-gray-800 focus:text-gray-800 dark:hover:text-dark-100 dark:focus:text-dark-100",
-                        )
-                      }
-                      as={Button}
-                      unstyled
-                    >
-                      {types[key].title}
-                    </Tab>
+              {loading ? (
+                <div className="flex items-center justify-center py-10 text-gray-500 dark:text-dark-300">
+                  Cargando notificaciones...
+                </div>
+              ) : notifications.length > 0 ? (
+                <div className="custom-scrollbar grow space-y-4 overflow-y-auto overflow-x-hidden p-4">
+                  {notifications.map((item) => (
+                    <NotificationItem
+                      key={item.id}
+                      remove={(id) => setNotifications((n) => n.filter((x) => x.id !== id))}
+                      data={item}
+                    />
                   ))}
-                </TabList>
-                {(notifications.length > 0 && activeTab === 0) ||
-                filteredNotifications.length > 0 ? (
-                  <TabPanels as={Fragment}>
-                    <TabPanel className="custom-scrollbar grow space-y-4 overflow-y-auto overflow-x-hidden p-4 outline-hidden">
-                      {notifications.map((item) => (
-                        <NotificationItem
-                          key={item.id}
-                          remove={removeNotification}
-                          data={item}
-                        />
-                      ))}
-                    </TabPanel>
-                    {typesKey.map((key) => (
-                      <TabPanel
-                        key={key}
-                        className="custom-scrollbar scrollbar-hide grow space-y-4 overflow-y-auto overflow-x-hidden p-4"
-                      >
-                        {filteredNotifications.map((item) => (
-                          <NotificationItem
-                            key={item.id}
-                            remove={removeNotification}
-                            data={item}
-                          />
-                        ))}
-                      </TabPanel>
-                    ))}
-                  </TabPanels>
-                ) : (
-                  <Empty />
-                )}
-              </TabGroup>
-              {((notifications.length > 0 && activeTab === 0) ||
-                filteredNotifications.length > 0) && (
+                </div>
+              ) : (
+                <Empty />
+              )}
+
+              {notifications.length > 0 && (
                 <div className="shrink-0 overflow-hidden rounded-b-lg bg-gray-100 dark:bg-dark-800">
                   <Button
                     // variant="flat"
@@ -299,7 +172,7 @@ function Empty() {
           style={{ "--primary": primary[500], "--dark": dark[500] }}
         />
         <div className="mt-6">
-          <p>No new notifications yet</p>
+          <p>Aún no hay notificaciones nuevas</p>
         </div>
       </div>
     </div>
@@ -307,31 +180,48 @@ function Empty() {
 }
 
 function NotificationItem({ data, remove }) {
-  const Icon = types[data.type].Icon;
+  const bannerUrl = data.banner;
+  const fecha = data.fecha ? new Date(data.fecha).toLocaleString() : "—";
+
   return (
-    <div className="group flex items-center justify-between gap-3">
-      <div className="flex min-w-0 gap-3">
-        <Avatar
-          size={10}
-          initialColor={types[data.type].color}
-          classNames={{ display: "rounded-lg" }}
-        >
-          <Icon className="size-4.5" />
-        </Avatar>
-        <div className="min-w-0">
-          <p className="-mt-0.5 truncate font-medium text-gray-800 dark:text-dark-100">
-            {data.title}
-          </p>
-          <div className="mt-0.5 truncate text-xs">{data.description}</div>
-          <div className="mt-1 truncate text-xs text-gray-400 dark:text-dark-300">
-            {data.time}
+    <div
+      onClick={() => {
+        if (data.anuncio?.id) {
+          window.location.href = `/administracion/anuncios/${data.anuncio.id}`;
+        }
+      }}
+      className="group flex items-center justify-between gap-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-dark-600 p-2 rounded-md transition"
+    >
+      <div className="flex min-w-0 gap-3 items-center">
+        {bannerUrl ? (
+          <img
+            src={bannerUrl}
+            alt="Banner anuncio"
+            className="h-10 w-10 rounded-md object-cover"
+          />
+        ) : (
+          <div className="h-10 w-10 rounded-md bg-gray-200 flex items-center justify-center text-gray-500">
+            📰
           </div>
+        )}
+
+        <div className="min-w-0">
+          <p className="whitespace-normal break-words font-medium text-gray-800 dark:text-dark-100">
+            {data.mensaje}
+          </p>
+          <p className="text-xs text-gray-400 dark:text-dark-300 mt-1">
+            {fecha}
+          </p>
         </div>
       </div>
+
       <Button
         variant="flat"
         isIcon
-        onClick={() => remove(data.id)}
+        onClick={(e) => {
+          e.stopPropagation(); // 🔹 evita que el click en el botón navegue
+          remove(data.id);
+        }}
         className="size-7 rounded-full opacity-0 group-hover:opacity-100 ltr:-mr-2 rtl:-ml-2"
       >
         <ArchiveBoxXMarkIcon className="size-4" />

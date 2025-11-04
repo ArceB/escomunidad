@@ -16,6 +16,7 @@ export default function AnunciosPage() {
   const location = useLocation();
 
   const mostrandoPendientes = location.pathname.includes("pendientes");
+  const mostrandoRechazados = location.pathname.includes("rechazados");
 
   return (
     <Page title={mostrandoPendientes ? "Anuncios Pendientes" : "Anuncios"}>
@@ -24,7 +25,7 @@ export default function AnunciosPage() {
       </div>
       
       <main className="pt-[65px] min-h-screen flex flex-col items-center bg-gray-50 dark:bg-dark-900 space-y-10 [overflow-anchor:none]">
-        {!mostrandoPendientes && (
+        {!mostrandoPendientes && !mostrandoRechazados &&(
           <section className="w-full">
             <Banner entidadId={entidadId} />
           </section>

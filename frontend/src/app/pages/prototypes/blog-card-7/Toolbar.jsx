@@ -118,6 +118,7 @@ function ActionMenu({ mostrandoPendientes }) {
   const navigate = useNavigate();
   const { id: entidadId } = useParams();
   const { role } = useAuthContext();
+  const isRechazados = window.location.pathname.includes("rechazados");
 
   if (!role) return null;
 
@@ -178,6 +179,56 @@ function ActionMenu({ mostrandoPendientes }) {
                 >
                   <Cog8ToothIcon className="size-4.5 stroke-2" />
                   <span>{mostrandoPendientes ? "Ver todos" : "Pendientes"}</span>
+                </button>
+              )}
+            </MenuItem>
+          )}
+          {/* 🚫 Rechazados (solo usuarios) */}
+          {role === "usuario" && (
+            <MenuItem>
+              {({ focus }) => (
+                <button
+                  onClick={() =>
+                    navigate(
+                      isRechazados
+                        ? `/administracion/entidades/${entidadId}/anuncios`
+                        : `/administracion/entidades/${entidadId}/anuncios/rechazados`
+                    )
+                  }
+                  className={clsx(
+                    "flex h-9 w-full items-center space-x-2 px-3 tracking-wide outline-hidden transition-colors",
+                    focus && "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100"
+                  )}
+                >
+                  <Cog8ToothIcon className="size-4.5 stroke-2" />
+                  <span>{isRechazados ? "Ver todos" : "Rechazados"}</span>
+                </button>
+              )}
+            </MenuItem>
+          )}
+          {/* 🕓 Pendientes (solo usuarios) */}
+          {role === "usuario" && (
+            <MenuItem>
+              {({ focus }) => (
+                <button
+                  onClick={() =>
+                    navigate(
+                      window.location.pathname.includes("pendientes-usuario")
+                        ? `/administracion/entidades/${entidadId}/anuncios`
+                        : `/administracion/entidades/${entidadId}/anuncios/pendientes-usuario`
+                    )
+                  }
+                  className={clsx(
+                    "flex h-9 w-full items-center space-x-2 px-3 tracking-wide outline-hidden transition-colors",
+                    focus && "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100"
+                  )}
+                >
+                  <Cog8ToothIcon className="size-4.5 stroke-2" />
+                  <span>
+                    {window.location.pathname.includes("pendientes-usuario")
+                      ? "Ver todos"
+                      : "Mis pendientes"}
+                  </span>
                 </button>
               )}
             </MenuItem>

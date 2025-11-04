@@ -11,12 +11,15 @@ import { useNavigate } from "react-router";
 import { useState } from "react";
 
 import { DeleteAnnouncementModal } from "app/pages/components/modal/DeleteAnnouncementModal";
+import { ShowCommentModal } from "app/pages/components/modal/ShowCommentModal";
 
 // ----------------------------------------------------------------------
 
 export function PostCard({ anuncio, cover, category, created_at, title, description, query, }) {
   const { role } = useAuthContext();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showCommentModal, setShowCommentModal] = useState(false);
+
   const navigate = useNavigate();
 
   return (
@@ -75,6 +78,50 @@ export function PostCard({ anuncio, cover, category, created_at, title, descript
             </Button>
           </div>
         )}
+        {role === "usuario" && window.location.pathname.includes("rechazados") && (
+          <div className="mt-3 text-end">
+            {/* Botón de Editar */}
+            <Button
+              data-tooltip
+              data-tooltip-content="Editar"
+              unstyled
+              className="size-7 rounded-full hover:bg-white/20"
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(`/administracion/entidades/${anuncio.entidad}/anuncios/${anuncio.id}/editar`);
+              }}
+            >
+              <EditIcon className="size-4.5 stroke-2 stroke-blue-800" />
+            </Button>
+
+            {/* Botón de comentarios */}
+            <Button
+              data-tooltip
+              data-tooltip-content="Ver comentario de rechazo"
+              unstyled
+              className="size-7 rounded-full hover:bg-white/20"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowCommentModal(true);
+              }}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={2}
+                stroke="blue"
+                className="size-4.5"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M8 10h8M8 14h5m-9 4h10l4 4V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v12z"
+                />
+              </svg>
+            </Button>
+          </div>
+        )}
       </div>
       {/* Modal de eliminación */}
       {showDeleteModal && (
@@ -87,6 +134,15 @@ export function PostCard({ anuncio, cover, category, created_at, title, descript
           }}
         />
       )}
+      {showCommentModal && (
+        <ShowCommentModal
+          show={showCommentModal}
+          onClose={() => setShowCommentModal(false)}
+          comentario={anuncio.comentarios_rechazo}
+        />
+
+      )}
+
     </Card>
   );
 }

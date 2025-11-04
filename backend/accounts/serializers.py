@@ -93,11 +93,19 @@ class EntidadSerializer(serializers.ModelSerializer):
 
 
 class AnuncioSerializer(serializers.ModelSerializer):
+    comentarios_rechazo = serializers.SerializerMethodField()
+    usuario_id = serializers.IntegerField(source="usuario.id", read_only=True)
+
     class Meta:
         model = Anuncio
         fields = "__all__"
-        read_only_fields = ["usuario"]  # el usuario lo pone perform_create
+        read_only_fields = ["usuario"]
 
+    def get_comentarios_rechazo(self, obj):
+        aprobacion = obj.aprobaciones_responsable.last()
+        if aprobacion and not aprobacion.aprobado:
+            return aprobacion.comentarios_rechazo
+        return None
 
 
 class NotificacionSerializer(serializers.ModelSerializer):
@@ -105,12 +113,15 @@ class NotificacionSerializer(serializers.ModelSerializer):
     destinatario_id = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.all(), source="destinatario", write_only=True
     )
+    anuncio = AnuncioSerializer(read_only=True)
+    anuncio_id = serializers.PrimaryKeyRelatedField(
+        queryset=Anuncio.objects.all(), source="anuncio", write_only=True, required=False, allow_null=True
+    )
 
     class Meta:
         model = Notificacion
-        fields = ["id", "mensaje", "fecha", "visto", "destinatario", "destinatario_id"]
+        fields = ["id", "mensaje", "fecha", "visto", "destinatario", "destinatario_id", "anuncio", "anuncio_id", "banner"]
         read_only_fields = ["fecha"]
-
 
 class AprobacionResponsableSerializer(serializers.ModelSerializer):
     anuncio_id = serializers.PrimaryKeyRelatedField(

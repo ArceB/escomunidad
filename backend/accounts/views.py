@@ -31,6 +31,7 @@ from django.core.mail import send_mail
 from django.conf import settings
 from django.utils.html import strip_tags
 from django.utils.safestring import mark_safe
+from django.db.models import Q
 
 from .models import Anuncio, Entidad
 from .serializers import AnuncioSerializer
@@ -187,84 +188,101 @@ class EntidadViewSet(viewsets.ModelViewSet):
 
         print(f"✅ PDF generado en: {pdf_path}")
 
+        # 🟣 Notificar a todos los superadmins cuando se crea una entidad
+        from accounts.models import User, Notificacion
+        superadmins = User.objects.filter(role="superadmin", is_active=True)
+        for sa in superadmins:
+            Notificacion.objects.create(
+                destinatario=sa,
+                mensaje=f"Se ha creado la entidad '{entidad.nombre}' 🏢",
+                banner=entidad.foto_portada  # si tu Notificacion.banner admite imagen genérica; si no, quítalo
+            )
+
+
 
 class AnuncioViewSet(viewsets.ModelViewSet):
     serializer_class = AnuncioSerializer
     queryset = Anuncio.objects.all()
 
     def get_permissions(self):
-        # 👇 si es la acción "public", no pedimos autenticación
         if self.action == "public":
             return [AllowAny()]
 
         user = self.request.user
         if not user.is_authenticated:
-            return [ReadOnly()]  # usuarios anónimos => solo lectura
+            return [ReadOnly()] 
 
         if user.role == "superadmin":
             return [IsAuthenticated()]
         if user.role == "admin":
             return [IsAdmin()]
         if user.role == "usuario":
-            return [IsAuthenticated()]  # puede crear
+            return [IsAuthenticated()]  
         if user.role == "responsable":
-            return [IsAuthenticated()]  # solo lectura
+            return [IsAuthenticated()]  
         return [ReadOnly()]
 
     def get_queryset(self):
         user = self.request.user
         entidad_id = self.request.GET.get("entidad_id")
-        anuncio_id = self.kwargs.get('anuncio_id')
-        estado = self.request.GET.get("estado")  # El estado puede ser 'pendiente' o 'aprobado'
+        estado = self.request.GET.get("estado")  
 
-        # Comenzamos con la queryset general
         qs = Anuncio.objects.all()
 
-        # Si el usuario no está autenticado, solo mostramos los anuncios públicos aprobados
         if not user.is_authenticated:
             qs = qs.filter(estado="aprobado").exclude(banner__isnull=True).exclude(banner="")
             if entidad_id:
                 qs = qs.filter(entidad_id=entidad_id)
             return qs
 
-        # Filtrado según el rol del usuario
+        # Superadmin
         if user.role == "superadmin":
-            # El superadmin ve todos los anuncios
-            pass  # No es necesario cambiar nada aquí porque 'qs' ya contiene todos los anuncios
-
-        elif user.role == "admin":
-            # El admin ve los anuncios asociados a las entidades que gestiona
-            qs = qs.filter(entidad__gestores__administrador=user)
-
-        elif user.role == "usuario":
-            # El usuario ve los anuncios aprobados de las entidades a las que pertenece
-            qs = qs.filter(entidad__in=user.entidades_usuario.all(), estado="aprobado")
-
-        elif user.role == "responsable":
-            # El responsable ve los anuncios de las entidades que gestiona
-            qs = qs.filter(entidad__responsable=user)
-        
-            # Si el estado es 'pendiente', lo filtramos por estado
-            if estado:
+            if estado in ["pendiente", "rechazado", "aprobado"]:
                 qs = qs.filter(estado=estado)
             else:
-                # Si no se especifica estado, mostramos solo los aprobados
-                qs = qs.filter(estado="pendiente")
+                qs = qs.filter(estado="aprobado")
 
-        else:
-            # Si no se cumple ninguno de los roles anteriores, no mostramos anuncios
-            qs = Anuncio.objects.none()
+        # Admin
+        elif user.role == "admin":
+            qs = qs.filter(entidad__gestores__administrador=user)
+            if estado in ["pendiente", "rechazado", "aprobado"]:
+                qs = qs.filter(estado=estado)
+            else:
+                qs = qs.filter(estado="aprobado")
 
-        # Filtrar por entidad_id si está presente
+        # Responsable
+        elif user.role == "responsable":
+            qs = qs.filter(entidad__responsable=user)
+            if estado in ["pendiente", "rechazado", "aprobado"]:
+                qs = qs.filter(estado=estado)
+
+        elif user.role == "usuario":
+            qs = qs.filter(entidad__in=user.entidades_usuario.all())
+            propios = self.request.GET.get("propios") == "true"
+
+            if estado == "rechazado":
+                qs = qs.filter(usuario=user, estado="rechazado")
+
+            elif estado == "pendiente":
+                if propios:
+                    qs = qs.filter(usuario=user, estado="pendiente")
+                else:
+                    qs = qs.none()
+
+            elif estado == "aprobado" or not estado:
+                qs = qs.filter(estado="aprobado")
+
+            # 👇 Permitir que el usuario vea o edite sus propios anuncios rechazados
+            if getattr(self, "action", None) in ["retrieve", "update", "partial_update"]:
+                qs = Anuncio.objects.filter(
+                    Q(id__in=qs.values("id"))  # anuncios que ya puede ver
+                    | Q(usuario=user)          # o los que él creó (rechazados, pendientes, etc.)
+                ).distinct()
+
         if entidad_id:
             qs = qs.filter(entidad_id=entidad_id)
 
-        # Si tenemos un anuncio_id (detalles de un anuncio), filtramos por ese ID
-        if anuncio_id:
-            qs = qs.filter(id=anuncio_id)
-
         return qs
-
 
     def perform_create(self, serializer):
         user = self.request.user
@@ -278,6 +296,9 @@ class AnuncioViewSet(viewsets.ModelViewSet):
         except Entidad.DoesNotExist:
             raise serializers.ValidationError({"entidad": f"No existe una entidad con id {entidad_id}"})
 
+        # 🟢 Importar aquí para evitar ciclos
+        from accounts.models import Notificacion
+
         if user.role == "superadmin":
             anuncio = serializer.save(usuario=user, entidad=entidad, estado="aprobado")
 
@@ -288,16 +309,47 @@ class AnuncioViewSet(viewsets.ModelViewSet):
                 raise serializers.ValidationError({"detail": "No puedes crear anuncios en esta entidad"})
 
         elif user.role == "usuario":
-            if Entidad.objects.filter(id=entidad_id, usuarios=user).exists():
-                anuncio = serializer.save(usuario=user, entidad=entidad, estado="pendiente")
-            else:
+            pertenece = False
+
+            # 1️⃣ Si el usuario tiene una FK a entidad (campo único)
+            if user.entidad_id and user.entidad_id == int(entidad_id):
+                pertenece = True
+
+            # 2️⃣ Si el usuario está asociado a varias entidades (M2M)
+            elif user.entidades_usuario.filter(id=entidad_id).exists():
+                pertenece = True
+
+            if not pertenece:
                 raise serializers.ValidationError({"detail": "No perteneces a esta entidad"})
+
+            # 🟡 Crear el anuncio como pendiente
+            anuncio = serializer.save(usuario=user, entidad=entidad, estado="pendiente")
+
+            # 🟢 Notificar al responsable de la entidad (solo si existe)
+            if entidad.responsable:
+                Notificacion.objects.create(
+                    destinatario=entidad.responsable,
+                    mensaje=f"Nuevo anuncio pendiente de revisión en '{entidad.nombre}': '{anuncio.titulo}' 🕒",
+                    anuncio=anuncio,
+                    banner=anuncio.banner
+                )
 
         else:
             raise serializers.ValidationError({"detail": "No tienes permiso para crear anuncios"})
         
         if anuncio.estado == "aprobado":
             self.generar_pdf_anuncio(anuncio)
+
+            # 🟣 Notificar a todos los superadmins si el anuncio ya nace aprobado
+            from accounts.models import User
+            superadmins = User.objects.filter(role="superadmin", is_active=True)
+            for sa in superadmins:
+                Notificacion.objects.create(
+                    destinatario=sa,
+                    mensaje=f"Anuncio publicado en '{anuncio.entidad.nombre}': '{anuncio.titulo}' 🟢",
+                    anuncio=anuncio,
+                    banner=anuncio.banner
+                )
 
     def sanitize_html_for_pdf(self, html_text):
         """
@@ -349,8 +401,17 @@ class AnuncioViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         anuncio = serializer.save()
 
+        # 🟡 Si el usuario edita su anuncio rechazado, vuelve a "pendiente"
+        if (
+            self.request.user.role == "usuario"
+            and self.request.user == anuncio.usuario
+            and anuncio.estado == "rechazado"
+        ):
+            anuncio.estado = "pendiente"
+            anuncio.save(update_fields=["estado"])
+
         # 🧠 Si el anuncio está aprobado, regenerar PDF informativo
-        if anuncio.estado == "aprobado":
+        elif anuncio.estado == "aprobado":
             self.generar_pdf_anuncio(anuncio)
 
     def generar_pdf_anuncio(self, anuncio):
@@ -413,11 +474,32 @@ class AnuncioViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"], permission_classes=[AllowAny])
     def public(self, request):
-        """Endpoint público para mostrar banners"""
+        """Devuelve los anuncios aprobados con banner visible según el rol del usuario."""
+        user = request.user
         entidad_id = request.query_params.get("entidad_id")
-        qs = Anuncio.objects.exclude(banner="").exclude(banner=None)
+
+        qs = Anuncio.objects.filter(estado="aprobado").exclude(banner__isnull=True).exclude(banner="")
+
+        # 🔹 Filtrado según rol (solo si está autenticado)
+        if user.is_authenticated:
+            if user.role == "superadmin":
+                pass  # puede ver todos
+            elif user.role == "admin":
+                qs = qs.filter(entidad__gestores__administrador=user)
+            elif user.role == "responsable":
+                qs = qs.filter(entidad__responsable=user)
+            elif user.role == "usuario":
+                qs = qs.filter(entidad__in=user.entidades_usuario.all())
+            else:
+                qs = Anuncio.objects.none()
+
+        # 🔹 Si viene un `entidad_id` en la URL, lo filtramos también
         if entidad_id:
             qs = qs.filter(entidad_id=entidad_id)
+
+        # 🔹 Los banners más recientes primero
+        qs = qs.order_by("-created_at")
+
         serializer = self.get_serializer(qs, many=True)
         return Response(serializer.data)
     
@@ -425,29 +507,85 @@ class AnuncioViewSet(viewsets.ModelViewSet):
     def revisar(self, request, pk=None):
         """Permite a los responsables aprobar o rechazar anuncios"""
         user = request.user
-        anuncio = self.get_object()
+
+        try:
+            anuncio = Anuncio.objects.get(pk=pk)
+        except Anuncio.DoesNotExist:
+            return Response({"detail": "No se encontró el anuncio."}, status=404)
+
+        # Solo responsables pueden revisar
+        if user.role != "responsable":
+            raise PermissionDenied("Solo los responsables pueden revisar anuncios.")
+
+        # Solo pueden revisar los anuncios de su entidad
+        if anuncio.entidad.responsable != user:
+            raise PermissionDenied("No puedes revisar anuncios de otras entidades.")
 
         if anuncio.estado != "pendiente":
-            return Response({"detail": "Este anuncio no está pendiente de revisión."}, status=status.HTTP_400_BAD_REQUEST)
-
-        if user.role != "responsable":
-            raise PermissionDenied("Solo los responsables pueden revisar anuncios")
-
-        if anuncio.entidad.responsable != user:
-            raise PermissionDenied("No puedes revisar anuncios de otras entidades")
+            return Response({"detail": "Este anuncio no está pendiente de revisión."}, status=400)
 
         accion = request.data.get("accion")
+        comentario = request.data.get("comentario", "")
+
         if accion not in ["aprobar", "rechazar"]:
             return Response({"detail": "Acción inválida"}, status=400)
+
+        from accounts.models import AprobacionResponsable, Notificacion
 
         if accion == "aprobar":
             anuncio.estado = "aprobado"
             anuncio.save(update_fields=["estado"])
             self.generar_pdf_anuncio(anuncio)
+
+            # 🟢 Crear notificación de aprobación para el usuario dueño del anuncio
+            Notificacion.objects.create(
+                destinatario=anuncio.usuario,
+                mensaje=f"Tu anuncio '{anuncio.titulo}' ha sido aprobado✅",
+                anuncio=anuncio,
+                banner=anuncio.banner
+            )
+
+            # 🟣 Notificación al administrador de la entidad
+            from accounts.models import GestionEntidad
+            admin_rel = GestionEntidad.objects.filter(entidad=anuncio.entidad).first()
+            if admin_rel and admin_rel.administrador:
+                Notificacion.objects.create(
+                    destinatario=admin_rel.administrador,
+                    mensaje=f"Se ha publicado un nuevo anuncio en '{anuncio.entidad.nombre}': '{anuncio.titulo}' 📰",
+                    anuncio=anuncio,
+                    banner=anuncio.banner
+                )
+
+            # 🟣 Notificación a todos los superadmins (anuncio aprobado)
+            from accounts.models import User  # arriba ya tienes otros imports, esto puede ir junto
+            superadmins = User.objects.filter(role="superadmin", is_active=True)
+            for sa in superadmins:
+                Notificacion.objects.create(
+                    destinatario=sa,
+                    mensaje=f"Anuncio aprobado en '{anuncio.entidad.nombre}': '{anuncio.titulo}' 🟢",
+                    anuncio=anuncio,
+                    banner=anuncio.banner
+                )
+
         else:
             anuncio.estado = "rechazado"
             anuncio.save(update_fields=["estado"])
 
+            # Guardar comentario de rechazo
+            AprobacionResponsable.objects.create(
+                anuncio=anuncio,
+                responsable=user,
+                comentarios_rechazo=comentario,
+                aprobado=False
+            )
+
+            # 🔴 Crear notificación de rechazo para el usuario dueño
+            Notificacion.objects.create(
+                destinatario=anuncio.usuario,
+                mensaje=f"Tu anuncio '{anuncio.titulo}' ha sido rechazado❌",
+                anuncio=anuncio,
+                banner=anuncio.banner
+            )
         return Response({"ok": True, "nuevo_estado": anuncio.estado})
     
     @action(detail=False, methods=["get"], permission_classes=[AllowAny])
@@ -459,11 +597,16 @@ class AnuncioViewSet(viewsets.ModelViewSet):
 
 
 class NotificacionViewSet(viewsets.ModelViewSet):
-    queryset = Notificacion.objects.select_related("destinatario").order_by("-id")
     serializer_class = NotificacionSerializer
     permission_classes = [IsAuthenticated]
 
-    # /api/notificaciones/marcar_vista/
+    def get_queryset(self):
+        """
+        🔹 Devuelve solo las notificaciones del usuario autenticado.
+        """
+        user = self.request.user
+        return Notificacion.objects.filter(destinatario=user).select_related("anuncio").order_by("-id")
+
     @action(detail=False, methods=["post"])
     def marcar_vista(self, request):
         ids = request.data.get("ids", [])

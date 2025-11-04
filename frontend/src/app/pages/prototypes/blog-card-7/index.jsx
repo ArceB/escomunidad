@@ -21,13 +21,16 @@ export default function BlogCard7({ onCardClick }) {
 
       let url = `/anuncios/?entidad_id=${entidadId}`;
 
-      const isPendientes = window.location.pathname.includes("pendientes");
-      if (isPendientes) {
+      const path = window.location.pathname;
+      if (path.includes("pendientes-usuario")) {
+        url += "&estado=pendiente&propios=true"; // 👈 parámetro extra
+      } else if (path.includes("pendientes")) {
         url += "&estado=pendiente";
+      } else if (path.includes("rechazados")) {
+        url += "&estado=rechazado";
       } else {
-        url += "&estado=aprobado";  // Agregar esto para la vista de todos los anuncios
+        url += "&estado=aprobado";
       }
-
       console.log("Solicitando anuncios desde:", url);
       const res = await axios.get(url, { headers });
       setPosts(res.data);
@@ -46,8 +49,6 @@ export default function BlogCard7({ onCardClick }) {
     threshold: 0.2,
     matchAllOnEmptyQuery: true,
   });
-
-  const isPendientes = window.location.pathname.includes("pendientes");
 
   return (
     <Page title="Anuncios">
@@ -84,11 +85,14 @@ export default function BlogCard7({ onCardClick }) {
 
         {filteredPosts.length === 0 && (
           <p className="text-center text-gray-500 mt-10">
-            {isPendientes
+            {window.location.pathname.includes("pendientes")
               ? "No hay anuncios pendientes de revisión."
-              : "No hay anuncios para esta entidad."}
+              : window.location.pathname.includes("rechazados")
+                ? "No hay anuncios rechazados."
+                : "No hay anuncios para esta entidad."}
           </p>
         )}
+
       </div>
     </Page>
   );

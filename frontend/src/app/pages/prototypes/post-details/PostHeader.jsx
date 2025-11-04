@@ -24,6 +24,8 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router";
 
 import { DeleteAnnouncementModal } from "app/pages/components/modal/DeleteAnnouncementModal";
+import { RejectAnnouncementModal } from "app/pages/components/modal/RejectAnnouncementModal";
+
 
 // ----------------------------------------------------------------------
 
@@ -31,6 +33,8 @@ export function PostHeader({ anuncio, onStatusChange, estado }) {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+
   const anuncioId = anuncio?.id;
 
 
@@ -38,7 +42,7 @@ export function PostHeader({ anuncio, onStatusChange, estado }) {
     setLoading(true);
     try {
       const response = await axios.post(
-        `/api/anuncios/${anuncioId}/revisar/`,
+        `anuncios/${anuncioId}/revisar/`,
         { accion: action }
       );
 
@@ -50,7 +54,7 @@ export function PostHeader({ anuncio, onStatusChange, estado }) {
       }
     } catch (err) {
       console.error(err);
-      alert("Hubo un error al procesar la acción.");
+      toast.error("Hubo un error al procesar la acción.");
     } finally {
       setLoading(false);
     }
@@ -96,17 +100,19 @@ export function PostHeader({ anuncio, onStatusChange, estado }) {
               <Button color="success"
                 className="mt-6 w-full space-x-2 "
                 onClick={() => handleAction("aprobar")}
-                loading={loading}>
+                disabled={loading}>
 
                 Aceptar
               </Button>
-              <Button color="error"
-                className="mt-6 w-full space-x-2 "
-                onClick={() => handleAction("rechazar")}
-                loading={loading}>
-
+              <Button
+                color="error"
+                className="mt-6 w-full space-x-2"
+                onClick={() => setShowRejectModal(true)}
+                disabled={loading}
+              >
                 Rechazar
               </Button>
+
             </div>
           )}
           <div className="flex max-sm:hidden">
@@ -163,7 +169,7 @@ export function PostHeader({ anuncio, onStatusChange, estado }) {
                 </Button>
               </div>
             )}
-            {(role === "superadmin" || role === "admin" || role === "responsable") && (
+            {(role === "superadmin" || role === "admin") && (
               <div className="mt-3 text-end">
                 <Button
                   data-tooltip
@@ -229,7 +235,7 @@ export function PostHeader({ anuncio, onStatusChange, estado }) {
             >
               <FaLinkedin className="size-4.5" />
             </Button>
-            
+
             <Button
               component="a"
               href="#"
@@ -260,6 +266,17 @@ export function PostHeader({ anuncio, onStatusChange, estado }) {
           onDeleted={() => setShowDeleteModal(false)}
         />
       )}
+      {showRejectModal && (
+        <RejectAnnouncementModal
+          anuncioId={anuncio.id}
+          onClose={() => setShowRejectModal(false)}
+          onRejected={() => {
+            onStatusChange("rechazar");
+            setShowRejectModal(false);
+          }}
+        />
+      )}
+
     </div>
   );
 }

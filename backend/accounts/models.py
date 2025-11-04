@@ -206,6 +206,8 @@ class Notificacion(models.Model):
     visto = models.BooleanField(default=False)
 
     destinatario = models.ForeignKey(User, on_delete=models.CASCADE, related_name="notificaciones")
+    anuncio = models.ForeignKey('Anuncio', on_delete=models.CASCADE, null=True, blank=True, related_name="notificaciones")
+    banner = models.ImageField(upload_to="notificaciones/banners/", null=True, blank=True)
 
     def __str__(self):
         return f"Notificación para {self.destinatario.username} - {self.mensaje[:30]}"
