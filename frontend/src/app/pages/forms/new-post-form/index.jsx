@@ -64,6 +64,7 @@ const editorModules = {
 const NewPostForm = ({ entidadId }) => {
 
   const { anuncioId } = useParams();
+  const isEditing = !!anuncioId;
   const [anuncio, setAnuncio] = useState(null); // ✅ estado del anuncio
 
   const [existingCover, setExistingCover] = useState(null);

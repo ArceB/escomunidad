@@ -64,7 +64,7 @@ export function PostContent({ anuncio }) {
 
       {/* --- Frase (Subtítulo) --- */}
       <h3 className="mt-1 text-lg italic text-gray-600 dark:text-dark-200">
-        "{anuncio.frase}"
+        &ldquo;{anuncio.frase}&rdquo;
       </h3>
 
       {/* --- Descripción --- */}

@@ -1,10 +1,15 @@
+# en chatbot/views.py
+
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import json
-from .src.bot import ChatBot
 
-# Instancia global del bot
-bot = ChatBot()
+# 👇 --- ESTA ES LA LÍNEA CORREGIDA --- 👇
+# Le decimos que busque DENTRO de la carpeta 'src'
+from .src.bot import bot_global
+
+# ❌ Ya no creamos una instancia nueva aquí:
+# bot = ChatBot()  <-- BORRADO
 
 @csrf_exempt
 def ask_chatbot(request):
@@ -18,7 +23,8 @@ def ask_chatbot(request):
             question = data.get("message", "")
             print("❓ Pregunta:", question)
 
-            reply = bot.ask(question)
+            # 👇 Usamos la instancia GLOBAL
+            reply = bot_global.ask(question)
             print("🤖 Respuesta generada:", reply)
 
             return JsonResponse({"reply": reply})
@@ -27,4 +33,3 @@ def ask_chatbot(request):
             return JsonResponse({"error": str(e)}, status=500)
 
     return JsonResponse({"error": "Only POST allowed"}, status=405)
-

@@ -36,14 +36,18 @@ INSTALLED_APPS = [
     "rest_framework",
     "corsheaders",
     "accounts",
-    "chatbot",
+    
+    # 👇 --- ESTA ES LA LÍNEA QUE CAMBIAMOS --- 👇
+    'chatbot.apps.ChatbotConfig', # Antes decía 'chatbot',
+    # 👆 --- FIN DEL CAMBIO --- 👆
+    
     "rest_framework_simplejwt.token_blacklist"
 ]
 
 MIDDLEWARE = [
     "middleware.prerender_middleware.PrerenderMiddleware",
     "django.middleware.security.SecurityMiddleware",
-    "corsheaders.middleware.CorsMiddleware",   # 👈 importante: después de SecurityMiddleware
+    "corsheaders.middleware.CorsMiddleware",  # 👈 importante: después de SecurityMiddleware
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -126,7 +130,7 @@ CORS_ALLOW_HEADERS = [
     "dnt",
     "origin",
     "user-agent",
-    "x-csrftoken",
+    "x-csrtoken",
     "x-requested-with",
 ]
 
@@ -157,4 +161,3 @@ EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 DEFAULT_FROM_EMAIL = "no-reply@tusitio.com"
 PRERENDER_URL = "https://service.prerender.io/"
 PRERENDER_TOKEN = "IS7CiIA2Ja8NzxKv8Fa2"  # 👈 colócalo desde tu cuenta de prerender.io
-

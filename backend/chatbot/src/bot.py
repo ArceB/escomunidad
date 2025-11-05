@@ -1,3 +1,4 @@
+# en chatbot/src/bot.py
 import os
 import time
 from threading import Thread
@@ -18,137 +19,140 @@ from langchain_core.messages import HumanMessage, AIMessage
 # Configuración de OpenRouter
 # =========================
 
-os.environ["OPENAI_API_KEY"] = "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"  
-
+os.environ["OPENAI_API_KEY"] = "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" 
 os.environ["OPENAI_API_BASE"] = "https://openrouter.ai/api/v1"
 
 # =========================
 # Carpeta de PDFs
 # =========================
 PDFS_DIR = os.path.join(settings.MEDIA_ROOT, "anuncios", "pdfs")
-os.makedirs(PDFS_DIR, exist_ok=True)
 
 
 class ChatBot:
+    """
+    Esta clase es una 'caja de herramientas' (Singleton).
+    Solo inicializa los modelos una vez y define las acciones.
+    NO procesa nada ni crea hilos al arrancar.
+    """
     def __init__(self):
-        # =========================
-        # Inicializar embeddings
-        # =========================
+        print("⚙️ [__init__] Inicializando ChatBot (Modelos y DB)...")
+        self.modelo_embeddings = None
+        self.modelo = None
+        self.db = None
+        
         try:
-            print("⚙️ Inicializando embeddings...")
+            print("  -> [__init__] Cargando embeddings...")
             self.modelo_embeddings = HuggingFaceEmbeddings(
                 model_name="sentence-transformers/all-MiniLM-L6-v2",
                 model_kwargs={"local_files_only": True}
             )
-            print("✅ Embeddings cargados correctamente")
         except Exception as e:
-            print("💥 Error cargando embeddings:", e)
-            self.modelo_embeddings = None
+            print(f"💥 [__init__] Error cargando embeddings: {e}")
 
-        # =========================
-        # Historial
-        # =========================
-        self.historial = InMemoryChatMessageHistory()
-
-        # =========================
-        # Modelo LLM (OpenRouter)
-        # =========================
         try:
-            print("⚙️ Inicializando modelo LLM en OpenRouter...")
+            print("  -> [__init__] Cargando modelo LLM...")
             self.modelo = ChatOpenAI(
                 model="meta-llama/llama-3.3-70b-instruct:free",
                 temperature=0.1,
                 openai_api_key=os.environ["OPENAI_API_KEY"],
                 openai_api_base=os.environ["OPENAI_API_BASE"],
             )
-            print("✅ Modelo LLM listo")
         except Exception as e:
-            print("💥 Error inicializando modelo LLM:", e)
-            self.modelo = None
+            print(f"💥 [__init__] Error inicializando modelo LLM: {e}")
 
-        # =========================
-        # BD Chroma persistente
-        # =========================
         try:
-            print("📦 Cargando base de datos Chroma persistente...")
-            self.db = Chroma(
-                persist_directory=CHROMA_PATH,
-                embedding_function=self.modelo_embeddings
-            )
+            print("  -> [__init__] Conectando a ChromaDB...")
+            if self.modelo_embeddings:
+                self.db = Chroma(
+                    persist_directory=CHROMA_PATH,
+                    embedding_function=self.modelo_embeddings
+                )
+            else:
+                 print(f"💥 [__init__] No se pudo conectar a ChromaDB porque los embeddings fallaron.")
         except Exception as e:
-            print("💥 Error cargando BD Chroma:", e)
-            self.db = None
+            print(f"💥 [__init__] Error cargando BD Chroma: {e}")
 
-        # PDFs procesados
-        self.PROCESADOS = set()
-        self._procesar_documentos_iniciales()
-
-        # =========================
-        # Hilo de monitoreo de PDFs
-        # =========================
-        self.thread = Thread(target=self._revisar_pdfs, daemon=True)
-        self.thread.start()
-
+        self.historial = InMemoryChatMessageHistory()
+        print("✅ [__init__] ChatBot listo y en espera de señales.")
+    
+    
     # =========================
-    # Procesar PDFs iniciales
+    # ACCIÓN 1: Procesar un PDF (Llamada por Señales)
     # =========================
-    def _procesar_documentos_iniciales(self):
-        documentos_iniciales = []
+    def procesar_pdf(self, pdf_path: str):
+        """
+        Procesa (o reprocesa) y guarda un SOLO PDF en ChromaDB.
+        """
+        print(f"  [procesar_pdf] Iniciando para: {pdf_path}")
         try:
-            for filename in os.listdir(PDFS_DIR):
-                if filename.endswith(".pdf"):
-                    pdf_path = os.path.join(PDFS_DIR, filename)
-                    print(f"📄 Procesando {filename}...")
-                    chunks = chunk_pdfs(pdf_path)
-                    documentos_iniciales.extend(chunks)
-                    self.PROCESADOS.add(filename)
+            if not self.db:
+                print("  [procesar_pdf] ❌ Error: La conexión a ChromaDB es Nula.")
+                return
 
-            if documentos_iniciales:
-                self.db = save_to_chroma_db(documentos_iniciales, self.modelo_embeddings)
-                print(f"✅ Se procesaron {len(documentos_iniciales)} chunks iniciales")
-        except Exception as e:
-            print("💥 Error procesando PDFs iniciales:", e)
-
-    # =========================
-    # Monitoreo continuo de PDFs
-    # =========================
-    def _revisar_pdfs(self):
-        while True:
+            if not os.path.exists(pdf_path):
+                print(f"  [procesar_pdf] ❌ Error: El archivo {pdf_path} no existe. Omitiendo.")
+                return
+            
+            file_name = os.path.basename(pdf_path)
+            
+            # --- Lógica de borrado (CON EL TRY/EXCEPT CORREGIDO) ---
+            print(f"  [procesar_pdf] 1. Intentando borrar chunks antiguos para 'source': {file_name}")
             try:
-                archivos_actuales = {f for f in os.listdir(PDFS_DIR) if f.endswith(".pdf")}
-
-                # Nuevos
-                nuevos = archivos_actuales - self.PROCESADOS
-                for filename in nuevos:
-                    pdf_path = os.path.join(PDFS_DIR, filename)
-                    print(f"📄 Nuevo PDF detectado: {filename}")
-                    chunks = chunk_pdfs(pdf_path)
-                    self.db = save_to_chroma_db(chunks, self.modelo_embeddings)
-                    self.PROCESADOS.add(filename)
-
-                # Eliminados
-                eliminados = self.PROCESADOS - archivos_actuales
-                for filename in eliminados:
-                    print(f"🗑 PDF eliminado: {filename}, borrando de Chroma...")
-                    self.db.delete(where={"source": filename})
-                    self.PROCESADOS.remove(filename)
-
+                self.db.delete(where={"source": file_name})
+                print(f"  [procesar_pdf] 2. Borrado de chunks antiguos (si existían) completado.")
             except Exception as e:
-                print("💥 Error revisando PDFs:", e)
-
-            time.sleep(30)
+                # ¡AQUÍ ESTÁ LA MAGIA!
+                # Capturamos el error aquí y lo reportamos, PERO CONTINUAMOS.
+                print(f"  [procesar_pdf] ⚠️ Aviso: No se pudieron borrar chunks antiguos (puede ser normal si no existían): {e}")
+            
+            # --- Lógica de procesamiento (AHORA SÍ SE EJECUTARÁ) ---
+            print(f"  [procesar_pdf] 3. Procesando chunks (chunk_pdfs)...")
+            chunks = chunk_pdfs(pdf_path) # Tu función de text_processor.py
+            
+            if chunks:
+                print(f"  [procesar_pdf] 4. Guardando {len(chunks)} chunks en ChromaDB...")
+                save_to_chroma_db(chunks, self.modelo_embeddings) # Tu función de chroma_db.py
+                print(f"  [procesar_pdf] 5. ✅ PDF {file_name} procesado y guardado.")
+            else:
+                print(f"  [procesar_pdf] ⚠️ Aviso: El archivo {file_name} no generó chunks.")
+                
+        except Exception as e:
+            print(f"💥 [procesar_pdf] Error fatal procesando PDF ({pdf_path}): {e}")
 
     # =========================
-    # Método principal del chat
+    # ACCIÓN 2: Eliminar un PDF (Llamada por Señales)
+    # =========================
+    def eliminar_pdf(self, pdf_name: str):
+        """
+        Elimina todos los chunks de un PDF de ChromaDB usando su nombre de archivo.
+        """
+        print(f"  [eliminar_pdf] Iniciando para: {pdf_name}")
+        try:
+            if not self.db:
+                print("  [eliminar_pdf] ❌ Error: La conexión a ChromaDB es Nula.")
+                return
+
+            print(f"  [eliminar_pdf] 1. Intentando borrar chunks para 'source': {pdf_name}")
+            self.db.delete(where={"source": pdf_name})
+            print(f"  [eliminar_pdf] 2. ✅ PDF {pdf_name} eliminado de ChromaDB.")
+        except Exception as e:
+            print(f"💥 [eliminar_pdf] Error fatal eliminando PDF ({pdf_name}): {e}")
+
+    # =========================
+    # ACCIÓN 3: Preguntar al Chatbot (Llamada por Vistas)
     # =========================
     def ask(self, pregunta: str) -> str:
-        print("🤔 Iniciando ask() con la pregunta:", pregunta)
+        print(f"🤔 [ask] Iniciando con la pregunta: {pregunta}")
+        
+        if not self.db:
+            return "Lo siento, la base de datos de conocimiento no está conectada."
+        
         try:
             documentos_relacionados = self.db.similarity_search_with_score(pregunta, k=5)
             contexto = "\n\n---\n\n".join([doc.page_content for doc, _ in documentos_relacionados])
-            print(f"📚 Documentos recuperados: {len(documentos_relacionados)}")
+            print(f"📚 [ask] Documentos recuperados: {len(documentos_relacionados)}")
         except Exception as e:
-            print("💥 Error en similarity_search:", e)
+            print(f"💥 [ask] Error en similarity_search: {e}")
             contexto = ""
 
         historial_texto = "\n".join(
@@ -183,23 +187,26 @@ Eres un asistente llamado PoliChat experto en responder preguntas basadas en doc
                 chat_history=historial_texto,
                 question=pregunta
             )
-            print("📝 Prompt generado (primeros 300 chars):", prompt[:300])
+            print(f"📝 [ask] Prompt generado (primeros 300 chars): {prompt[:300]}")
         except Exception as e:
-            print("💥 Error generando prompt:", e)
+            print(f"💥 [ask] Error generando prompt: {e}")
             return "⚠ Error generando prompt"
+
+        if not self.modelo:
+            return "Lo siento, el modelo LLM no está conectado."
 
         # Llamada con reintento
         while True:
             try:
-                print("⚡ Llamando al modelo en OpenRouter...")
+                print("⚡ [ask] Llamando al modelo en OpenRouter...")
                 respuesta = self.modelo.invoke([HumanMessage(content=prompt)])
-                print("✅ Respuesta recibida del modelo:", respuesta)
+                print("✅ [ask] Respuesta recibida del modelo.")
                 break
             except RateLimitError:
-                print("⏳ Rate limit, reintentando en 60s...")
+                print("⏳ [ask] Rate limit, reintentando en 60s...")
                 time.sleep(60)
             except Exception as e:
-                print("💥 Error llamando al modelo:", e)
+                print(f"💥 [ask] Error llamando al modelo: {e}")
                 return "⚠ Error llamando al modelo"
 
         # Guardar en historial
@@ -207,6 +214,16 @@ Eres un asistente llamado PoliChat experto en responder preguntas basadas en doc
             self.historial.add_message(HumanMessage(content=pregunta))
             self.historial.add_message(AIMessage(content=respuesta.content))
         except Exception as e:
-            print("⚠ Error guardando en historial:", e)
+            print("⚠ [ask] Error guardando en historial:", e)
 
         return respuesta.content.strip()
+
+
+# =========================
+# Instancia Única (Singleton)
+# =========================
+# Django cargará este archivo una vez, creando una sola instancia del bot
+# que vivirá en la memoria del servidor.
+print("--- Inicializando instancia global del ChatBot ---")
+bot_global = ChatBot()
+print("--- Instancia global del ChatBot CREADA ---")
