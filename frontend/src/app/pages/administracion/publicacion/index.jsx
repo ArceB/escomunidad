@@ -39,7 +39,7 @@ export default function PublicacionPage() {
     <Page title="Administración - Publicación">
       <NavBar showNotifications />
 
-      <main className="transition-content w-full max-w-4xl mx-auto px-(--margin-x) pt-24 pb-8">
+      <main className="transition-content w-full px-(--margin-x) pt-24 pb-8">
         {loading ? (
           <p>Cargando anuncio...</p>
         ) : anuncio ? (
