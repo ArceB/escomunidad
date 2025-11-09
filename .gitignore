@@ -1,0 +1,20 @@
+# Ignorar archivos del chatbot (ChromaDB)
+backend/chatbot/chroma/
+backend/chatbot/chroma_db/
+
+
+# Ignorar los archivos .pyc
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignorar el entorno virtual si lo tienes
+venv/
+.env/
+
+# Ignorar archivos de configuración de editor
+.vscode/
+.idea/
+
+
