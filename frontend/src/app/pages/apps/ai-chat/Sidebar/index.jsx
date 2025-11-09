@@ -1,0 +1,16 @@
+// Local Imports
+//import { MainPanel } from "app/layouts/MainLayout/Sidebar/MainPanel";
+//import { baseNavigation } from "app/navigation";
+//import { SidebarPanel } from "./SidebarPanel";
+
+// ----------------------------------------------------------------------
+
+export function Sidebar() {
+  return null; /**(
+    <>
+      <MainPanel nav={baseNavigation} activeSegment="/apps" />
+      <SidebarPanel />
+    </>
+  );*/
+  
+}
