@@ -15,6 +15,7 @@ def save_to_chroma_db(chunks: list[Document], embedding_model) -> Chroma:
     Esta función ahora es 'tonta': simplemente añade lo que le pasan.
     La lógica de 'bot.py' (el hilo) ya decidió si estos chunks son nuevos
     o si son de un archivo actualizado.
+
     """
     # Inicializar la base de datos
     db = Chroma(
@@ -50,3 +51,4 @@ def save_to_chroma_db(chunks: list[Document], embedding_model) -> Chroma:
     db.add_documents(chunks, ids=ids)
 
     return db
+

@@ -22,7 +22,6 @@ export const schema = Yup.object().shape({
   descripcion: Yup.object()
     .required("Descripción requerida")
     .test("notEmpty", "La descripción no puede estar vacía", isDeltaNotEmpty),
-
   banner: Yup.mixed().nullable()
     .when("$isEditing", { // Revisa el contexto que pasamos
       is: (isEditing) => isEditing === true, // Si isEditing es verdadero...

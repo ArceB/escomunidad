@@ -1,9 +1,9 @@
-# en chatbot/src/bot.py
 import os
 import time
 from threading import Thread
 from openai import RateLimitError
 from django.conf import settings
+
 from .text_processor import chunk_pdfs
 from .chroma_db import save_to_chroma_db, CHROMA_PATH
 from langchain_chroma import Chroma
@@ -19,12 +19,14 @@ from langchain_core.messages import HumanMessage, AIMessage
 # Configuración de OpenRouter
 # =========================
 
-os.environ["OPENAI_API_KEY"] = "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" 
+os.environ["OPENAI_API_KEY"] = "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"  
+
 os.environ["OPENAI_API_BASE"] = "https://openrouter.ai/api/v1"
 
 # =========================
 # Carpeta de PDFs
 # =========================
+
 PDFS_DIR = os.path.join(settings.MEDIA_ROOT, "anuncios", "pdfs")
 
 
@@ -42,21 +44,25 @@ class ChatBot:
         
         try:
             print("  -> [__init__] Cargando embeddings...")
+
             self.modelo_embeddings = HuggingFaceEmbeddings(
                 model_name="sentence-transformers/all-MiniLM-L6-v2",
                 model_kwargs={"local_files_only": True}
             )
+
         except Exception as e:
             print(f"💥 [__init__] Error cargando embeddings: {e}")
 
         try:
             print("  -> [__init__] Cargando modelo LLM...")
+
             self.modelo = ChatOpenAI(
                 model="meta-llama/llama-3.3-70b-instruct:free",
                 temperature=0.1,
                 openai_api_key=os.environ["OPENAI_API_KEY"],
                 openai_api_base=os.environ["OPENAI_API_BASE"],
             )
+
         except Exception as e:
             print(f"💥 [__init__] Error inicializando modelo LLM: {e}")
 
@@ -153,6 +159,7 @@ class ChatBot:
             print(f"📚 [ask] Documentos recuperados: {len(documentos_relacionados)}")
         except Exception as e:
             print(f"💥 [ask] Error en similarity_search: {e}")
+
             contexto = ""
 
         historial_texto = "\n".join(
@@ -207,6 +214,7 @@ Eres un asistente llamado PoliChat experto en responder preguntas basadas en doc
                 time.sleep(60)
             except Exception as e:
                 print(f"💥 [ask] Error llamando al modelo: {e}")
+
                 return "⚠ Error llamando al modelo"
 
         # Guardar en historial

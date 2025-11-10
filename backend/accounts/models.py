@@ -132,6 +132,7 @@ class Entidad(models.Model):
         # 3. Borra la Entidad de la base de datos
         super().delete(*args, **kwargs)
 
+
 # ======================================================
 # Anuncio 
 # ======================================================
@@ -218,8 +219,6 @@ class Anuncio(models.Model):
 
         # 3. Llama al método delete() original para borrar el anuncio de la BD
         super().delete(*args, **kwargs)
-
-
 
 # ======================================================
 # Notificaciones

@@ -91,7 +91,6 @@ class EntidadSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
-
 # En accounts/serializers.py
 
 class AnuncioSerializer(serializers.ModelSerializer):

@@ -89,7 +89,6 @@ export default function PublicacionPage() {
             comentario={anuncio.comentarios_rechazo}
             titulo={anuncio.titulo}
           />
-
         )}
       </Page>
     </>
