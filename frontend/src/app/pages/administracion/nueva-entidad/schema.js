@@ -4,7 +4,7 @@ export const schema = Yup.object().shape({
   nombre: Yup.string()
     .trim()
     .min(2, "El nombre es muy corto")
-    .max(50, "El nombre es muy largo")
+    .max(100, "El nombre es muy largo")
     .required("El nombre es obligatorio"),
   correo: Yup.string()
     .email("Debe ser un correo válido")

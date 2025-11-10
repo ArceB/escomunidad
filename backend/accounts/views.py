@@ -32,6 +32,7 @@ from django.conf import settings
 from django.utils.html import strip_tags
 from django.utils.safestring import mark_safe
 from django.db.models import Q
+from django.contrib.auth import get_user_model
 
 from .models import Anuncio, Entidad
 from .serializers import AnuncioSerializer
@@ -49,6 +50,8 @@ from .serializers import (
     AprobacionResponsableSerializer, AprobacionAdministradorSerializer,
     GestionEntidadSerializer, ResponsableEntidadSerializer, CrearUsuarioSerializer, ResetPasswordSerializer
 )
+
+User = get_user_model()
 
 # Registrar fuente Unicode compatible con acentos y eñes
 pdfmetrics.registerFont(TTFont('DejaVuSans', 'C:\\Windows\\Fonts\\arial.ttf'))
@@ -145,7 +148,7 @@ class EntidadViewSet(viewsets.ModelViewSet):
     
     def perform_create(self, serializer):
         user = self.request.user
-        data = self.request.data 
+        data = self.request.data
 
         print("📩 Datos recibidos:", data)
 
@@ -163,42 +166,39 @@ class EntidadViewSet(viewsets.ModelViewSet):
                     raise serializers.ValidationError({"administrador_id": "El administrador no existe"})
             else:
                 raise serializers.ValidationError({"administrador_id": "Debe seleccionar un administrador"})
-                
+            
         elif user.role == "admin":
             if not GestionEntidad.objects.filter(entidad=entidad, administrador=user).exists():
                 GestionEntidad.objects.create(entidad=entidad, administrador=user)
         else:
             raise PermissionDenied("No tienes permiso para crear una entidad")
-        
-        
-        
-        # ✅ Generar PDF automáticamente
-        pdf_path = f"media/entidades/informacion/ficha_entidad_{entidad.id}.pdf"
-        os.makedirs(os.path.dirname(pdf_path), exist_ok=True)
 
-        c = canvas.Canvas(pdf_path, pagesize=letter)
-        c.setFont("Helvetica-Bold", 16)        
-        c.drawString(100, 750, f"Información de: {entidad.nombre}")
-        c.setFont("Helvetica", 12)
-        c.drawString(100, 700, f"Correo: {entidad.correo or 'N/A'}")
-        c.drawString(100, 680, f"Teléfono: {entidad.telefono or 'N/A'}")
+        # ✅ Generar PDF automáticamente (protegido con try)
+        try:
+            pdf_path = f"media/anuncios/pdfs/ficha_entidad_{entidad.id}.pdf"
+            os.makedirs(os.path.dirname(pdf_path), exist_ok=True)
 
-        c.showPage()
-        c.save()
+            c = canvas.Canvas(pdf_path, pagesize=letter)
+            c.setFont("Helvetica-Bold", 16)
+            c.drawString(100, 750, f"Información de: {entidad.nombre}")
+            c.setFont("Helvetica", 12)
+            c.drawString(100, 700, f"Correo: {entidad.correo or 'N/A'}")
+            c.drawString(100, 680, f"Teléfono: {entidad.telefono or 'N/A'}")
 
-        print(f"✅ PDF generado en: {pdf_path}")
+            c.showPage()
+            c.save()
+            print(f"✅ PDF generado en: {pdf_path}")
+        except Exception as e:
+            print(f"⚠️ Error generando PDF para entidad {entidad.id}: {e}")
 
         # 🟣 Notificar a todos los superadmins cuando se crea una entidad
-        from accounts.models import User, Notificacion
         superadmins = User.objects.filter(role="superadmin", is_active=True)
         for sa in superadmins:
             Notificacion.objects.create(
                 destinatario=sa,
                 mensaje=f"Se ha creado la entidad '{entidad.nombre}' 🏢",
-                banner=entidad.foto_portada  # si tu Notificacion.banner admite imagen genérica; si no, quítalo
+                banner=entidad.foto_portada or None
             )
-
-
 
 class AnuncioViewSet(viewsets.ModelViewSet):
     serializer_class = AnuncioSerializer
@@ -424,7 +424,7 @@ class AnuncioViewSet(viewsets.ModelViewSet):
         import os
 
         BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        pdf_dir = os.path.join(BASE_DIR, "chatbot", "documents")
+        pdf_dir = os.path.join(BASE_DIR, "media", "anuncios", "pdfs")
         os.makedirs(pdf_dir, exist_ok=True)
 
         pdf_path = os.path.join(pdf_dir, f"info_anuncio_{anuncio.id}.pdf")

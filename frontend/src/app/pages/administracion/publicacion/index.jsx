@@ -64,6 +64,12 @@ export default function PublicacionPage() {
         <NavBar showNotifications />
         <main className="transition-content w-full px-(--margin-x) pt-24 pb-8">
           <Card className="p-4 lg:p-6">
+            
+            {anuncio ? (
+              <PostContent anuncio={anuncio} />
+            ) : (
+              <p>No se encontró el anuncio.</p>
+            )}
             <PostHeader
               anuncio={anuncio}
               onStatusChange={(action) => {
@@ -74,11 +80,6 @@ export default function PublicacionPage() {
               }}
               estado={estado}
             />
-            {anuncio ? (
-              <PostContent anuncio={anuncio} />
-            ) : (
-              <p>No se encontró el anuncio.</p>
-            )}
           </Card>
 
           {!isAuthenticated && <RecentArticles />}
