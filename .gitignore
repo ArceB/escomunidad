@@ -1,11 +1,8 @@
-<<<<<<< HEAD
+
 # Ignorar archivos del chatbot (ChromaDB)
 backend/chatbot/chroma/
 backend/chatbot/chroma_db/
 
-
-=======
->>>>>>> rama-arce-copia
 # Ignorar los archivos .pyc
 __pycache__/
 *.pyc
@@ -19,9 +16,3 @@ venv/
 # Ignorar archivos de configuración de editor
 .vscode/
 .idea/
-
-<<<<<<< HEAD
-
-=======
-# Otros archivos específicos de tu proyecto...
->>>>>>> rama-arce-copia
