@@ -77,6 +77,7 @@ class Entidad(models.Model):
     nombre = models.CharField(max_length=100)
     correo = models.EmailField(null=True, blank=True)
     telefono = models.CharField(max_length=20, blank=True, null=True)
+    descripcion = models.TextField(blank=True, null=True)
     foto_portada = models.ImageField(
         upload_to=entidad_cover_upload_to,
         default="entidades/default.webp",
@@ -102,6 +103,13 @@ class Entidad(models.Model):
         """
         Sobrescribe save() para renombrar la foto_portada después de obtener un ID.
         """
+        if self.pk:
+            old_entidad = Entidad.objects.filter(pk=self.pk).first()
+            if old_entidad and old_entidad.foto_portada and old_entidad.foto_portada != self.foto_portada:
+                # Borrar el archivo anterior
+                if os.path.isfile(old_entidad.foto_portada.path):
+                    os.remove(old_entidad.foto_portada.path)
+
         super().save(*args, **kwargs)
 
         if self.foto_portada and "temp" in self.foto_portada.name:
@@ -110,10 +118,9 @@ class Entidad(models.Model):
             new_filename = f"cover_entidad_{self.id}.{ext}"
             new_path = os.path.join(os.path.dirname(old_path), new_filename)
 
-            # Renombrar archivo físicamente en el sistema
-            os.rename(old_path, new_path)
+            if os.path.exists(old_path):
+                os.rename(old_path, new_path)
 
-            # Actualizar la referencia en la base de datos
             self.foto_portada.name = f"entidades/{new_filename}"
             super().save(update_fields=["foto_portada"])
 
@@ -121,17 +128,35 @@ class Entidad(models.Model):
         return self.nombre
     
     def delete(self, *args, **kwargs):
-        # 1. Borra la foto de portada DE LA ENTIDAD
-        if self.foto_portada:
-            self.foto_portada.delete(save=False) # 👈 AÑADIMOS ESTA LÍNEA
+        """
+        Elimina foto de portada, PDF y anuncios asociados.
+        """
+        # 1️⃣ Eliminar foto de portada
+        if self.foto_portada and self.foto_portada.name != "entidades/default.webp":
+            try:
+                self.foto_portada.delete(save=False)
+                print(f"🗑️ Foto portada eliminada: {self.foto_portada.path}")
+            except Exception as e:
+                print(f"⚠️ Error al eliminar foto de portada: {e}")
 
-        # 2. Borra todos los archivos de los anuncios hijos
+        # 2️⃣ Eliminar PDF asociado
+        pdf_path = f"media/anuncios/pdfs/ficha_entidad_{self.id}.pdf"
+        if os.path.exists(pdf_path):
+            try:
+                os.remove(pdf_path)
+                print(f"🗑️ PDF eliminado: {pdf_path}")
+            except Exception as e:
+                print(f"⚠️ Error al eliminar PDF de la entidad {self.id}: {e}")
+
+        # 3️⃣ Eliminar anuncios relacionados (también borran sus PDFs y banners)
         for anuncio in self.anuncios.all():
-            anuncio.delete() # Esto ejecuta el .delete() del Anuncio
+            anuncio.delete()
 
-        # 3. Borra la Entidad de la base de datos
+        # 4️⃣ Borrar la entidad en la BD
         super().delete(*args, **kwargs)
 
+    def __str__(self):
+        return self.nombre
 
 # ======================================================
 # Anuncio 
@@ -209,16 +234,35 @@ class Anuncio(models.Model):
         return self.titulo
     
     def delete(self, *args, **kwargs):
-        # 1. Borra el archivo banner del storage (media/anuncios/banners/)
+        """
+        Elimina los archivos asociados (banner, PDF del usuario y PDF informativo generado).
+        """
+        # 1️⃣ Eliminar banner si existe
         if self.banner:
-            self.banner.delete(save=False)
+            try:
+                self.banner.delete(save=False)
+            except Exception as e:
+                print(f"⚠️ Error al eliminar banner del anuncio {self.id}: {e}")
 
-        # 2. Borra el archivo PDF del storage (media/anuncios/pdfs/)
+        # 2️⃣ Eliminar PDF subido por el usuario (campo archivo_pdf)
         if self.archivo_pdf:
-            self.archivo_pdf.delete(save=False)
+            try:
+                self.archivo_pdf.delete(save=False)
+            except Exception as e:
+                print(f"⚠️ Error al eliminar archivo_pdf del anuncio {self.id}: {e}")
 
-        # 3. Llama al método delete() original para borrar el anuncio de la BD
+        # 3️⃣ Eliminar PDF informativo generado automáticamente
+        pdf_path = f"media/anuncios/pdfs/info_anuncio_{self.id}.pdf"
+        if os.path.exists(pdf_path):
+            try:
+                os.remove(pdf_path)
+                print(f"🗑️ PDF informativo eliminado: {pdf_path}")
+            except Exception as e:
+                print(f"⚠️ Error al eliminar PDF informativo del anuncio {self.id}: {e}")
+
+        # 4️⃣ Finalmente eliminar el registro del anuncio en la BD
         super().delete(*args, **kwargs)
+
 
 # ======================================================
 # Notificaciones

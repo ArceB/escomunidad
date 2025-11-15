@@ -5,7 +5,7 @@ import axios from "utils/axios";
 import NavBar from "app/layouts/MainLayout/NavBar";
 
 // Local Imports
-import BlogCard5 from "app/pages/prototypes/blog-card-5";
+import BlogCard2 from "app/pages/prototypes/blog-card-2";
 import { Page } from "components/shared/Page";
 import { Banner } from "app/pages/dashboards/principal/Banner";
 
@@ -31,14 +31,16 @@ export default function EntidadesPage() {
 
   return (
     <Page title="Entidades">
-      <NavBar showNotifications />
+      <div className="w-full fixed top-0 left-0 z-50">
+        <NavBar showNotifications/>
+      </div>
 
-      <main className="pt-20 px-6">
+      <main className="pt-[65px] min-h-screen flex flex-col items-center bg-gray-50 dark:bg-dark-900 space-y-10 [overflow-anchor:none]">
 
         <section className="w-full">
           <Banner />
         </section>
-        <BlogCard5
+        <BlogCard2
           data={entidades}
           onCardClick={(entidad) => navigate(`/administracion/entidades/${entidad.id}/anuncios`)}
           onDeleted={handleDeleted}

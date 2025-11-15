@@ -28,4 +28,9 @@ export const schema = Yup.object().shape({
       "El archivo no debe superar 4MB",
       (value) => value && value.size <= 4194304
     ),
+  descripcion: Yup.mixed()
+    .test("es-delta", "La descripción no es válida", (value) => !!value)
+    .nullable(),
+
+
 });

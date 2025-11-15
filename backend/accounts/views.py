@@ -154,8 +154,10 @@ class EntidadViewSet(viewsets.ModelViewSet):
 
         admin_id = data.get("administrador_input") or data.get("administrador_id")
 
-        entidad = serializer.save()
+        # ✅ Forzar inclusión de descripción al guardar
+        entidad = serializer.save(descripcion=data.get("descripcion", None))
 
+        # --- Permisos y gestión de administrador ---
         if user.role == "superadmin":            
             if admin_id:
                 try:
@@ -166,32 +168,17 @@ class EntidadViewSet(viewsets.ModelViewSet):
                     raise serializers.ValidationError({"administrador_id": "El administrador no existe"})
             else:
                 raise serializers.ValidationError({"administrador_id": "Debe seleccionar un administrador"})
-            
+        
         elif user.role == "admin":
             if not GestionEntidad.objects.filter(entidad=entidad, administrador=user).exists():
                 GestionEntidad.objects.create(entidad=entidad, administrador=user)
         else:
             raise PermissionDenied("No tienes permiso para crear una entidad")
 
-        # ✅ Generar PDF automáticamente (protegido con try)
-        try:
-            pdf_path = f"media/anuncios/pdfs/ficha_entidad_{entidad.id}.pdf"
-            os.makedirs(os.path.dirname(pdf_path), exist_ok=True)
+        # ✅ Generar PDF (lo actualizamos más abajo)
+        self.generar_pdf_entidad(entidad)
 
-            c = canvas.Canvas(pdf_path, pagesize=letter)
-            c.setFont("Helvetica-Bold", 16)
-            c.drawString(100, 750, f"Información de: {entidad.nombre}")
-            c.setFont("Helvetica", 12)
-            c.drawString(100, 700, f"Correo: {entidad.correo or 'N/A'}")
-            c.drawString(100, 680, f"Teléfono: {entidad.telefono or 'N/A'}")
-
-            c.showPage()
-            c.save()
-            print(f"✅ PDF generado en: {pdf_path}")
-        except Exception as e:
-            print(f"⚠️ Error generando PDF para entidad {entidad.id}: {e}")
-
-        # 🟣 Notificar a todos los superadmins cuando se crea una entidad
+        # 🟣 Notificar superadmins
         superadmins = User.objects.filter(role="superadmin", is_active=True)
         for sa in superadmins:
             Notificacion.objects.create(
@@ -199,6 +186,89 @@ class EntidadViewSet(viewsets.ModelViewSet):
                 mensaje=f"Se ha creado la entidad '{entidad.nombre}' 🏢",
                 banner=entidad.foto_portada or None
             )
+
+    def sanitize_html_for_pdf(self, html_text):
+        """Limpia y normaliza HTML básico para evitar errores en ReportLab."""
+        if not html_text:
+            return ""
+
+        html_text = html.unescape(html_text)
+        html_text = unicodedata.normalize("NFKC", html_text)
+        html_text = re.sub(r'<(\w+)(\s+[^>]*)>', r'<\1>', html_text)
+        allowed_tags = ['b', 'i', 'u', 'br', 'strong', 'em']
+        html_text = re.sub(
+            r'</?(?!(' + '|'.join(allowed_tags) + r')\b)[^>]*>',
+            '',
+            html_text
+        )
+        html_text = html_text.replace('<strong>', '<b>').replace('</strong>', '</b>')
+        html_text = html_text.replace('<em>', '<i>').replace('</em>', '</i>')
+        html_text = html_text.replace('\n', '<br/>').replace('&nbsp;', ' ')
+        return ''.join(ch for ch in html_text if ch.isprintable() or ch in '\n\r\t').strip()
+
+
+    def generar_pdf_entidad(self, entidad):
+        """Genera o actualiza el PDF de una entidad (con soporte de texto largo y HTML básico)."""
+        try:
+            from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+            from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+            from reportlab.lib.enums import TA_JUSTIFY
+            from reportlab.lib.pagesizes import letter
+            from reportlab.lib.units import inch
+            import unicodedata, html, re
+
+            # Ruta
+            pdf_path = f"media/anuncios/pdfs/ficha_entidad_{entidad.id}.pdf"
+            os.makedirs(os.path.dirname(pdf_path), exist_ok=True)
+
+            # Eliminar versión anterior
+            if os.path.exists(pdf_path):
+                os.remove(pdf_path)
+
+            # Configuración del documento
+            doc = SimpleDocTemplate(
+                pdf_path,
+                pagesize=letter,
+                rightMargin=72,
+                leftMargin=72,
+                topMargin=72,
+                bottomMargin=72,
+            )
+
+            styles = getSampleStyleSheet()
+            styles.add(ParagraphStyle(name="Justify", alignment=TA_JUSTIFY, leading=16))
+            content = []
+
+            # Título principal
+            content.append(Paragraph(f"<b>Información de</b> {entidad.nombre}", styles["Heading2"]))
+            content.append(Spacer(1, 12))
+
+            # Datos básicos
+            content.append(Paragraph(f"<b>Correo:</b> {entidad.correo or 'N/A'}", styles["Normal"]))
+            content.append(Paragraph(f"<b>Teléfono:</b> {entidad.telefono or 'N/A'}", styles["Normal"]))
+            content.append(Spacer(1, 10))
+
+            # Descripción
+            if entidad.descripcion:
+                clean_desc = self.sanitize_html_for_pdf(entidad.descripcion)
+                content.append(Paragraph("<b>Descripción:</b>", styles["Normal"]))
+                try:
+                    content.append(Paragraph(clean_desc, styles["Justify"]))
+                except Exception:
+                    safe_text = re.sub(r"<[^>]+>", "", clean_desc)
+                    content.append(Paragraph(safe_text, styles["Justify"]))
+
+            doc.build(content)
+            print(f"✅ PDF actualizado correctamente: {pdf_path}")
+
+        except Exception as e:
+            print(f"⚠️ Error generando PDF para entidad {entidad.id}: {e}")
+
+    
+    def perform_update(self, serializer):
+        """Actualiza la entidad y regenera su PDF"""
+        entidad = serializer.save()
+        self.generar_pdf_entidad(entidad)
 
 class AnuncioViewSet(viewsets.ModelViewSet):
     serializer_class = AnuncioSerializer

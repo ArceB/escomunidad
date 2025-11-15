@@ -6,7 +6,7 @@ import PropTypes from "prop-types";
 import axios from "utils/axios";
 import { toast } from "sonner";
 
-export function ReDeleteAnnouncementModal({ anuncioId, anuncioTitle, onDeleted, openExternally = true }) {
+export function ReDeleteEntityModal({ entidadId, entidadNombre, onDeleted, openExternally = true }) {
   const [isOpen, { close }] = useDisclosure(openExternally);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
@@ -18,12 +18,12 @@ export function ReDeleteAnnouncementModal({ anuncioId, anuncioTitle, onDeleted, 
     pending: {
       Icon: ExclamationTriangleIcon,
       title: "Confirmar eliminación definitiva",
-      description: `Esta acción eliminará permanentemente el anuncio "${anuncioTitle}". ¿Deseas continuar?`,
+      description: `Esta acción eliminará permanentemente la entidad "${entidadNombre}" y todos sus anuncios asociados. ¿Deseas continuar?`,
       actionText: "Eliminar definitivamente",
     },
     success: {
-      title: "Anuncio eliminado",
-      description: `El anuncio "${anuncioTitle}" fue eliminado correctamente.`,
+      title: "Entidad eliminada",
+      description: `La entidad "${entidadNombre}" fue eliminada correctamente.`,
     },
     error: {
       description: "Ocurrió un error. Intenta nuevamente.",
@@ -33,16 +33,16 @@ export function ReDeleteAnnouncementModal({ anuncioId, anuncioTitle, onDeleted, 
   const onOk = async () => {
     setLoading(true);
     try {
-      await axios.delete(`/anuncios/${anuncioId}/`);
+      await axios.delete(`/entidades/${entidadId}/`);
       setLoading(false);
       setSuccess(true);
       setError(false);
-      toast.success(`Anuncio "${anuncioTitle}" eliminado ✅`);
+      toast.success(`Entidad "${entidadNombre}" eliminada ✅`);
       onDeleted?.();
     } catch (err) {
       setLoading(false);
       setError(true);
-      toast.error(`Error al eliminar el anuncio ❌`);
+      toast.error(`Error al eliminar la entidad ❌`);
       console.error("Error al eliminar:", err);
     }
   };
@@ -59,9 +59,9 @@ export function ReDeleteAnnouncementModal({ anuncioId, anuncioTitle, onDeleted, 
   );
 }
 
-ReDeleteAnnouncementModal.propTypes = {
-  anuncioId: PropTypes.number.isRequired,
-  anuncioTitle: PropTypes.string.isRequired,
+ReDeleteEntityModal.propTypes = {
+  entidadId: PropTypes.number.isRequired,
+  entidadNombre: PropTypes.string.isRequired,
   onDeleted: PropTypes.func,
   openExternally: PropTypes.bool,
 };

@@ -58,7 +58,7 @@ class EntidadSerializer(serializers.ModelSerializer):
     class Meta:
         model = Entidad
         fields = [
-            "id", "nombre", "correo", "telefono", "foto_portada",
+            "id", "nombre", "correo", "telefono","descripcion", "foto_portada",
             "responsable", "responsable_id",
             "usuarios", "usuarios_ids",
             "administrador", "administrador_id", "administrador_input"
@@ -70,13 +70,24 @@ class EntidadSerializer(serializers.ModelSerializer):
         return gestion.administrador.id if gestion else None
 
     def create(self, validated_data):
+        # Extraer relaciones
         usuarios = validated_data.pop("usuarios", [])
         administrador = validated_data.pop("administrador", None)
+
+        # ✅ Asegurar que la descripción se tome incluso si no está en validated_data
+        descripcion = self.initial_data.get("descripcion", None)
+        if descripcion is not None:
+            validated_data["descripcion"] = descripcion
+
+        # Crear entidad
         entidad = Entidad.objects.create(**validated_data)
+
+        # Relaciones M2M y FK
         if usuarios:
             entidad.usuarios.set(usuarios)
         if administrador:
             GestionEntidad.objects.create(entidad=entidad, administrador=administrador)
+
         entidad.save()
         return entidad
 

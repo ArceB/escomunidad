@@ -7,6 +7,9 @@ import { useEffect, useState } from "react";
 import axios from "utils/axios";
 import { useAuthContext } from "app/contexts/auth/context";
 import { useNavigate, useParams } from "react-router";
+import Quill from "quill";
+import { Delta, TextEditor } from "components/shared/form/TextEditor";
+
 
 // Local Imports
 import { schema } from "./schema";
@@ -20,18 +23,50 @@ import NavBar from "app/layouts/MainLayout/NavBar";
 
 const initialState = {
     nombre: "",
+    descripcion: new Delta(),
     correo: "",
     telefono: "",
     responsable_id: "",
     usuarios: [],
     cover: null,
 };
+const editorModules = {
+    toolbar: [
+        ["bold", "italic", "underline", "strike"],
+        ["blockquote", "code-block"],
+        [{ header: 1 }, { header: 2 }],
+        [{ list: "ordered" }, { list: "bullet" }],
+        [{ script: "sub" }, { script: "super" }],
+        [{ indent: "-1" }, { indent: "+1" }],
+        [{ direction: "rtl" }],
+        [{ size: ["small", false, "large", "huge"] }],
+        [{ header: [1, 2, 3, 4, 5, 6, false] }],
+        [{ color: [] }, { background: [] }],
+        [{ font: [] }],
+        [{ align: [] }, "image"],
+        ["clean"],
+    ],
+    clipboard: {
+        matchers: [
+            ["A", (node, delta) => {
+                delta.ops.forEach((op) => {
+                    if (op.insert && typeof op.insert === "string") {
+                        op.attributes = op.attributes || {};
+                        op.attributes.link = node.getAttribute("href");
+                    }
+                });
+                return delta;
+            }],
+        ],
+    },
+};
 
 export default function NuevaEntidadPage() {
     const navigate = useNavigate();
     const { id: entidadId } = useParams();
     const [existingCover, setExistingCover] = useState(null);
-    const [entity, setEntity] = useState(null);
+    //const [entity, setEntity] = useState(null);
+    //const [editorReady, setEditorReady] = useState(false);
 
     const {
         register,
@@ -83,13 +118,51 @@ export default function NuevaEntidadPage() {
     }, []);
 
     useEffect(() => {
-        if (!entidadId) return;  // Solo si estamos editando (id disponible)
+        if (!entidadId) {
+            reset(initialState);
+            setExistingCover(null);
+            return;
+        }
 
         const fetchEntityData = async () => {
             try {
                 const res = await axios.get(`/entidades/${entidadId}`);
-                const entidad = res.data;
-                setEntity(entidad);
+                const entityData = res.data;
+
+                setExistingCover(entityData.foto_portada || null);
+
+                // Convertir HTML a Delta CORRECTAMENTE
+                // Convertir HTML a Delta CORRECTAMENTE
+                // Convertir HTML a Delta sin warnings
+                let descripcionDelta = new Delta();
+                if (entityData.descripcion) {
+                    console.log("HTML recibido:", entityData.descripcion);
+
+                    // Método sin warnings: usar solo clipboard.convert
+                    const tempContainer = document.createElement('div');
+                    tempContainer.innerHTML = entityData.descripcion;
+
+                    const tempQuill = new Quill(document.createElement('div'));
+                    descripcionDelta = tempQuill.clipboard.convert({
+                        html: entityData.descripcion
+                    });
+
+                    console.log("Delta convertido:", descripcionDelta);
+                    console.log("Delta ops:", descripcionDelta.ops);
+                }
+
+                // Reset del formulario con los datos completos
+                reset({
+                    nombre: entityData.nombre || "",
+                    correo: entityData.correo || "",
+                    telefono: entityData.telefono || "",
+                    descripcion: descripcionDelta,
+                    responsable_id: entityData.responsable_id || "",
+                    usuarios: entityData.usuarios_ids || [],
+                    administrador_id: entityData.administrador_id || "",
+                    cover: null,
+                });
+
             } catch (err) {
                 console.error("Error al cargar la entidad:", err);
                 toast.error("Error al cargar la entidad ❌");
@@ -97,22 +170,7 @@ export default function NuevaEntidadPage() {
         };
 
         fetchEntityData();
-    }, [entidadId]);
-
-    useEffect(() => {
-        if (!entity || admins.length === 0 || responsables.length === 0 || usuarios.length === 0) return;
-
-        reset({
-            nombre: entity.nombre || "",
-            correo: entity.correo || "",
-            telefono: entity.telefono || "",
-            responsable_id: entity.responsable_id || "",
-            usuarios: entity.usuarios_ids || [],
-            administrador_id: entity.administrador_id || "",
-        });
-
-        setExistingCover(entity.foto_portada || null);
-    }, [entity, admins, responsables, usuarios, reset]);
+    }, [entidadId, reset]);
 
     const onSubmit = async (data) => {
         try {
@@ -120,6 +178,11 @@ export default function NuevaEntidadPage() {
             formData.append("nombre", data.nombre);
             formData.append("correo", data.correo);
             formData.append("telefono", data.telefono);
+
+            const tempQuill = new Quill(document.createElement("div"));
+            tempQuill.setContents(data.descripcion);
+            const descripcionHTML = tempQuill.root.innerHTML;
+            formData.append("descripcion", descripcionHTML);
 
             if (data.responsable_id) {
                 formData.append("responsable_id", data.responsable_id);
@@ -162,7 +225,6 @@ export default function NuevaEntidadPage() {
             toast.error("Error al crear entidad ❌");
         }
     };
-
 
     return (
         <Page title={entidadId ? "Editar Entidad" : "Nueva Entidad"}>
@@ -213,11 +275,28 @@ export default function NuevaEntidadPage() {
 
                                     <Input
                                         label="Teléfono"
-                                        placeholder="+52 123 456 7890"
+                                        placeholder="55112233"
                                         {...register("telefono")}
                                         error={errors?.telefono?.message}
                                     />
-
+                                    <div className="flex flex-col">
+                                        <span className="font-medium text-gray-700 dark:text-dark-50">Descripción</span>
+                                        <Controller
+                                            name="descripcion"
+                                            control={control}
+                                            render={({ field: { value, onChange, ...rest } }) => (
+                                                <TextEditor
+                                                    value={value}
+                                                    onChange={(delta) => onChange(delta)}
+                                                    placeholder="Escribe una breve descripción..."
+                                                    modules={editorModules}
+                                                    className="mt-1.5 [&_.ql-editor]:max-h-80 [&_.ql-editor]:min-h-[12rem]"
+                                                    error={errors?.descripcion?.message}
+                                                    {...rest}
+                                                />
+                                            )}
+                                        />
+                                    </div>
                                     {/* Mostrar campo de administrador solo si es superadmin */}
                                     {isSuperAdmin && (
                                         <Controller

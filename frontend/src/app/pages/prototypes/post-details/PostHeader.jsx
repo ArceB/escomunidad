@@ -25,6 +25,7 @@ import { useNavigate } from "react-router";
 
 import { DeleteAnnouncementModal } from "app/pages/components/modal/DeleteAnnouncementModal";
 import { RejectAnnouncementModal } from "app/pages/components/modal/RejectAnnouncementModal";
+import { ApproveAnnouncementModal } from "app/pages/components/modal/ApproveAnnouncementModal";
 
 
 // ----------------------------------------------------------------------
@@ -88,22 +89,26 @@ export function PostHeader({ anuncio, onStatusChange, estado }) {
 
 
   const { isAuthenticated, role } = useAuthContext();
+  const [showApproveModal, setShowApproveModal] = useState(false);
+
   return (
     <div>
-      <div className="flex items-center justify-between gap-2">
+      <div className="mt-10 flex items-center justify-between gap-2">
         <div className="flex items-center gap-3">
 
         </div>
         <div className="flex gap-2">
           {isAuthenticated && role === "responsable" && estado === "pendiente" && (
             <div className="flex max-sm:hidden inline-space">
-              <Button color="success"
-                className="mt-6 w-full space-x-2 "
-                onClick={() => handleAction("aprobar")}
-                disabled={loading}>
-
+              <Button
+                color="success"
+                className="mt-6 w-full space-x-2"
+                onClick={() => setShowApproveModal(true)}
+                disabled={loading}
+              >
                 Aceptar
               </Button>
+
               <Button
                 color="error"
                 className="mt-6 w-full space-x-2"
@@ -170,32 +175,33 @@ export function PostHeader({ anuncio, onStatusChange, estado }) {
               </div>
             )}
             {(role === "superadmin" || role === "admin") && (
-              <div className="mt-3 text-end">
-                <Button
-                  data-tooltip
-                  data-tooltip-content="Editar"
-                  unstyled
-                  className="size-7 rounded-full hover:bg-white/20"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    navigate(`/administracion/entidades/${anuncio.entidad}/anuncios/${anuncio.id}/editar`);
-                  }}
-                >
-                  <EditIcon className="size-4.5 stroke-2 stroke-blue-800" />
-                </Button>
-                <Button
-                  data-tooltip
-                  data-tooltip-content="Eliminar"
-                  unstyled
-                  className="size-7 rounded-full hover:bg-white/20"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowDeleteModal(true);
-                  }}
-                >
-                  <TrashIcon className="size-4.5 stroke-2 stroke-blue-800" />
-                </Button>
-              </div>
+              <div className="mt-3 text-end flex gap-2 justify-end">
+  <Button
+    color="primary"
+    className="px-4 py-2 text-sm font-medium flex items-center gap-2"
+    onClick={(e) => {
+      e.stopPropagation();
+      navigate(`/administracion/entidades/${anuncio.entidad}/anuncios/${anuncio.id}/editar`);
+    }}
+  >
+    <EditIcon className="size-4" />
+    Editar
+  </Button>
+
+  <Button
+    color="error"
+    className="px-4 py-2 text-sm font-medium flex items-center gap-2"
+    onClick={(e) => {
+      e.stopPropagation();
+      setShowDeleteModal(true);
+    }}
+  >
+    <TrashIcon className="size-4" />
+    Eliminar
+  </Button>
+</div>
+
+
             )}
           </div>
 
@@ -263,9 +269,14 @@ export function PostHeader({ anuncio, onStatusChange, estado }) {
         <DeleteAnnouncementModal
           anuncioId={anuncio.id}
           anuncioTitle={anuncio.titulo}
-          onDeleted={() => setShowDeleteModal(false)}
+          onDeleted={() => {
+            //toast.success("Anuncio eliminado correctamente✅");
+            setShowDeleteModal(false);
+            navigate(`/administracion/entidades/${anuncio.entidad}/anuncios`);
+          }}
         />
       )}
+
       {showRejectModal && (
         <RejectAnnouncementModal
           anuncioId={anuncio.id}
@@ -276,7 +287,16 @@ export function PostHeader({ anuncio, onStatusChange, estado }) {
           }}
         />
       )}
-
+      {showApproveModal && (
+        <ApproveAnnouncementModal
+          isOpen={showApproveModal}
+          onClose={() => setShowApproveModal(false)}
+          onConfirm={() => {
+            setShowApproveModal(false);
+            handleAction("aprobar");
+          }}
+        />
+      )}
     </div>
   );
 }

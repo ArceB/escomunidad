@@ -5,21 +5,21 @@ import { DocumentTextIcon } from "@heroicons/react/24/outline";
 export function PostContent({ anuncio }) {
   return (
     <div className="mt-6 text-base text-gray-600 dark:text-dark-200">
-      <h1 className="text-xl font-medium text-gray-900 dark:text-dark-50 lg:text-2xl">
+      <h1 className="text-3xl font-medium text-gray-900 dark:text-dark-50 lg:text-4xl">
         {anuncio.titulo}
       </h1>
       {anuncio.fecha_inicio && anuncio.fecha_fin && (
-        <p className="mt-1 text-xs">
+        <p className="mt-3 text-xs">
           {anuncio.fecha_inicio}&nbsp;&nbsp;&nbsp;&nbsp;||&nbsp;&nbsp;&nbsp;&nbsp;{anuncio.fecha_fin}&nbsp;&nbsp;&nbsp;
         </p>
       )}
-      <h3 className="mt-1">{anuncio.frase}</h3>
+      <h3 className="mt-3">{anuncio.frase}</h3>
 
 
       {anuncio.banner && (
-        <section className="relative w-full aspect-[19/6] overflow-hidden">
+        <section className="mt-5 relative w-full aspect-[19/6] overflow-hidden">
           <img
-            className="mt-5 w-full rounded-lg object-cover object-center"
+            className="w-full rounded-lg object-cover object-center "
             src={anuncio.banner}
             alt={anuncio.titulo}
           />
@@ -28,7 +28,7 @@ export function PostContent({ anuncio }) {
 
       {anuncio.descripcion && (
         <div
-          className="mt-4 prose dark:prose-invert"
+          className="mt-5 prose dark:prose-invert"
           dangerouslySetInnerHTML={{ __html: anuncio.descripcion }}
         />
       )}

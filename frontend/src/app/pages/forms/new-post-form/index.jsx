@@ -84,37 +84,50 @@ const NewPostForm = ({ entidadId }) => {
 
   // 🔹 Cargar anuncio si estamos en modo edición
   useEffect(() => {
-    if (!anuncioId) return;
+    if (!anuncioId) {
+        reset(initialState);
+        setAnuncio(null);
+        setExistingCover(null);
+        setExistingPdf(null);
+        return;
+    }
 
     const fetchAnuncio = async () => {
-      try {
-        const res = await axios.get(`/anuncios/${anuncioId}/`);
-        const anuncioData = res.data;
+        try {
+            const res = await axios.get(`/anuncios/${anuncioId}/`);
+            const anuncioData = res.data;
 
-        setAnuncio(anuncioData); // ✅ guardamos todo el objeto
+            setAnuncio(anuncioData);
+            setExistingCover(anuncioData.banner || null);
+            setExistingPdf(anuncioData.archivo_pdf || null);
 
-        reset({
-          titulo: anuncioData.titulo || "",
-          frase: anuncioData.frase || "",
-          descripcion: anuncioData.descripcion
-            ? new Delta([{ insert: anuncioData.descripcion }])
-            : new Delta(),
-          banner: null,
-          archivo_pdf: null,
-          fecha_inicio: anuncioData.fecha_inicio || "",
-          fecha_fin: anuncioData.fecha_fin || "",
-        });
+            // Convertir HTML a Delta correctamente
+            let descripcionDelta = new Delta();
+            if (anuncioData.descripcion) {
+                const tempQuill = new Quill(document.createElement('div'));
+                descripcionDelta = tempQuill.clipboard.convert({ 
+                    html: anuncioData.descripcion 
+                });
+            }
 
-        setExistingCover(anuncioData.banner || null);
-        setExistingPdf(anuncioData.archivo_pdf || null);
-      } catch (err) {
-        console.error("Error al cargar el anuncio:", err);
-        toast.error("Error al cargar el anuncio ❌");
-      }
+            reset({
+                titulo: anuncioData.titulo || "",
+                frase: anuncioData.frase || "",
+                descripcion: descripcionDelta,  // ✅ Ahora es un Delta convertido correctamente
+                banner: null,
+                archivo_pdf: null,
+                fecha_inicio: anuncioData.fecha_inicio || "",
+                fecha_fin: anuncioData.fecha_fin || "",
+            });
+
+        } catch (err) {
+            console.error("Error al cargar el anuncio:", err);
+            toast.error("Error al cargar el anuncio ❌");
+        }
     };
 
     fetchAnuncio();
-  }, [anuncioId, reset]);
+}, [anuncioId, reset]);
 
   const onSubmit = async (data) => {
     try {
@@ -196,7 +209,7 @@ const NewPostForm = ({ entidadId }) => {
               type="submit"
               form="new-post-form"
             >
-              {anuncioId ? "Actualizar" : "Publicar"}
+              Guardar
             </Button>
           </div>
         </div>

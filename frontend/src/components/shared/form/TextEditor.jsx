@@ -28,7 +28,6 @@ const styles = `@layer vendor {
 }`;
 
 const sheet = makeStyleTag();
-
 injectStyles(sheet, styles);
 insertStylesToHead(sheet);
 
@@ -50,6 +49,7 @@ const TextEditor = forwardRef(
       error,
       classNames,
       label,
+      onReady, // ← ahora sí existe como prop
     },
     forwardedRef,
   ) => {
@@ -92,6 +92,9 @@ const TextEditor = forwardRef(
 
       quillRef.current = quill;
 
+      // 🔥 avisar cuando el editor está listo
+      onReady?.(quill);
+
       quill.on(Quill.events.TEXT_CHANGE, (...args) => {
         const [, , source] = args;
         if (source === "user") {
@@ -111,7 +114,6 @@ const TextEditor = forwardRef(
         quillRef.current = null;
         container.innerHTML = "";
       };
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [readOnly, modules, placeholder]);
 
     useImperativeHandle(forwardedRef, () => ({
@@ -122,16 +124,15 @@ const TextEditor = forwardRef(
     }));
 
     useEffect(() => {
-      if (quillRef.current && value !== undefined) {
-        const currentContent = quillRef.current.getContents();
+      if (!quillRef.current) return;
 
-        const diff = currentContent.diff(value);
+      const safeValue =
+        value instanceof Delta
+          ? value
+          : new Delta(value?.ops || []);
 
-        if (diff && diff?.ops?.length > 0) {
-          quillRef.current.setContents(value);
-        }
-      }
-    }, [quillRef, value]);
+      quillRef.current.setContents(safeValue);
+    }, [value]);
 
     return (
       <div
@@ -179,6 +180,7 @@ TextEditor.propTypes = {
   className: PropTypes.string,
   classNames: PropTypes.object,
   label: PropTypes.node,
+  onReady: PropTypes.func, // ← ahora sí está declarado
 };
 
 export { TextEditor, Delta, Quill };

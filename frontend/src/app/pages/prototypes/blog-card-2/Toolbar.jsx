@@ -1,4 +1,7 @@
 // Import Dependencies
+import { useNavigate } from "react-router";
+import { useAuthContext } from "app/contexts/auth/context";
+import PropTypes from "prop-types";
 import { Fragment, useRef, useState } from "react";
 import {
   Menu,
@@ -8,7 +11,6 @@ import {
   Transition,
 } from "@headlessui/react";
 import {
-  ArrowDownTrayIcon,
   ChevronDownIcon,
   Cog8ToothIcon,
   MagnifyingGlassIcon,
@@ -17,7 +19,6 @@ import {
 } from "@heroicons/react/24/outline";
 import { RiFilter3Line } from "react-icons/ri";
 import clsx from "clsx";
-import PropTypes from "prop-types";
 
 // Local Imports
 import { Button, Input } from "components/ui";
@@ -46,7 +47,7 @@ export function Toolbar({ query, setQuery }) {
           }}
           value={query || ""}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search Posts ..."
+          placeholder="Buscar Entidad ..."
           ref={mobileSearchRef}
           prefix={<MagnifyingGlassIcon className="size-4.5" />}
           suffix={
@@ -66,7 +67,7 @@ export function Toolbar({ query, setQuery }) {
         <>
           <div className="flex min-w-0 items-center space-x-1 ">
             <h2 className="truncate text-xl font-medium text-gray-700 dark:text-dark-50 lg:text-2xl">
-              Blog Cards
+              Entidades
             </h2>
             <ActionMenu />
           </div>
@@ -78,7 +79,7 @@ export function Toolbar({ query, setQuery }) {
               }}
               value={query || ""}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search Posts ..."
+              placeholder="Buscar Entidad ..."
               className=""
               prefix={<MagnifyingGlassIcon className="size-4.5" />}
             />
@@ -113,6 +114,9 @@ export function Toolbar({ query, setQuery }) {
 }
 
 function ActionMenu() {
+  const navigate = useNavigate();
+  const { role } = useAuthContext();
+  if (!(role === "admin" || role === "superadmin")) return null;
   return (
     <Menu as="div" className="relative inline-block text-left">
       <MenuButton
@@ -135,45 +139,20 @@ function ActionMenu() {
           <MenuItem>
             {({ focus }) => (
               <button
+              onClick={() => navigate("/administracion/nueva-entidad")}
                 className={clsx(
                   "flex h-9 w-full items-center space-x-2 px-3 tracking-wide outline-hidden transition-colors ",
                   focus &&
-                    "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
+                  "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
                 )}
               >
                 <PlusIcon className="size-4.5 stroke-2" />
-                <span>New Post</span>
+                <span>Nueva Entidad</span>
               </button>
             )}
           </MenuItem>
-          <MenuItem>
-            {({ focus }) => (
-              <button
-                className={clsx(
-                  "flex h-9 w-full items-center space-x-2 px-3 tracking-wide outline-hidden transition-colors ",
-                  focus &&
-                    "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
-                )}
-              >
-                <ArrowDownTrayIcon className="size-4.5 stroke-2" />
-                <span>Export Posts</span>
-              </button>
-            )}
-          </MenuItem>
-          <MenuItem>
-            {({ focus }) => (
-              <button
-                className={clsx(
-                  "flex h-9 w-full items-center space-x-2 px-3 tracking-wide outline-hidden transition-colors ",
-                  focus &&
-                    "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
-                )}
-              >
-                <Cog8ToothIcon className="size-4.5 stroke-2" />
-                <span>Settings</span>
-              </button>
-            )}
-          </MenuItem>
+          
+          
         </MenuItems>
       </Transition>
     </Menu>
