@@ -200,6 +200,9 @@ class ChatBot:
         self.historial = InMemoryChatMessageHistory()
         self.sesiones_estado = {}
         self.cache_idioma = {}
+
+        # caché simple de respuestas
+        self.cache_respuestas = {}
         print("✅ [__init__] ChatBot listo (sin modelos cargados).")
 
     # =========================
@@ -449,6 +452,12 @@ class ChatBot:
         pregunta_norm = normalizar_texto(pregunta)
         pregunta_para_detector = limpiar_para_langdetect(pregunta)
 
+        # --- CACHÉ DE RESPUESTAS ---
+        if pregunta_norm in self.cache_respuestas:
+            print(" <i> -> [ask] Respondiendo desde caché.")
+            return self.cache_respuestas[pregunta_norm]
+
+
 
         # --- VALIDACIONES (NUEVA LÓGICA) ---
         
@@ -522,8 +531,8 @@ class ChatBot:
         )
         pregunta_para_busqueda = pregunta
         es_seguimiento = False 
-        
-        if self.historial.messages:
+        # Solo reescribir la pregunta si ya hubo varias interacciones
+        if self.historial.messages and len(self.historial.messages) >= 4:
             print(" <i> -> [ask] Hay historial, re-escribiendo la pregunta...")
             REWRITE_PROMPT_TEMPLATE = """
 Basado en el "Historial de chat", analiza la "Pregunta Actual".
@@ -558,7 +567,7 @@ Tu respuesta JSON:
             print(" <i> -> [ask] No hay historial, se considera TEMA_NUEVO.")
 
         # --- Lógica de Filtro (SIN CAMBIOS) ---
-        search_kwargs = {"k": 8}
+        search_kwargs = {"k": 4}
         
         if context_id and es_seguimiento:
             nombre_archivo = f"anexo_anuncio_{context_id}.pdf"
@@ -573,6 +582,10 @@ Tu respuesta JSON:
                 **search_kwargs
             )
             contexto = "\n\n---\n\n".join([doc.page_content for doc, _ in documentos_relacionados])
+            # Limitar tamaño del contexto para que el prompt no sea gigante
+            MAX_CONTEXT_CHARS = 4000  # puedes ajustar este valor
+            if len(contexto) > MAX_CONTEXT_CHARS:
+                contexto = contexto[:MAX_CONTEXT_CHARS]
             # --- FECHAS DETECTADAS ---
             fechas_detectadas = self._extraer_fechas(contexto)
             clasificacion_fechas = self._clasificar_fechas(fechas_detectadas)
@@ -674,7 +687,12 @@ Tu respuesta JSON:
         except Exception as e:
             print("⚠ [ask] Error guardando en historial:", e)
 
-        return respuesta.content.strip()
+        # --- Guardar respuesta en caché (PASO 5.3) ---
+        respuesta_final = respuesta.content.strip()
+        self.cache_respuestas[pregunta_norm] = respuesta_final
+
+        return respuesta_final
+
 
 
 # =========================
