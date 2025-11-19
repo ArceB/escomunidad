@@ -4,10 +4,10 @@ import { Button, Card } from "components/ui";
 import { useChatContext } from "../Chat.context";
 
 const defaultMessages = [
-  { id: "1", content: "¿Cuáles son los requisitos para poderme titular?" },
-  { id: "2", content: "¿Cuáles son los requisitos para inscribirme?" },
-  { id: "3", content: "¿Cuáles son los medios de contacto de la escuela?" },
-  { id: "4", content: "¿Cuáles son las formas para poderme titular?" },
+  { id: "1", content: "¿Cuáles son las becas disponibles?" },
+  { id: "2", content: "¿Cuáles son los requisitos para reinscribirme?" },
+  { id: "3", content: "Dame información sobre la ESCOM" },
+  { id: "4", content: "Dame información sobre el servicio social" },
 ];
 
 export function Placeholder() {
