@@ -2,9 +2,18 @@
 import os
 import time
 import json
+import json as jsonlib
 import re  # Para limpiar texto
+import logging
+
+from dateparser import parse as parse_date
 from datetime import datetime
 from threading import Thread
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='{"time":"%(asctime)s","level":"%(levelname)s","event":"%(message)s"}'
+)
 
 try:
     from openai import RateLimitError
@@ -93,11 +102,26 @@ os.makedirs(CHROMA_PATH, exist_ok=True)
 os.makedirs(PDFS_DIR, exist_ok=True)
 
 
-# --- Palabras seguras (para el filtro de ambigüedad) ---
 PALABRAS_SEGURAS_DE_UNA_SOLA_PALABRA = {
     "hola", "gracias", "adios", "menu", "ayuda", "ok", "si", "no",
-    "buenos", "dias", "tardes", "noches"
+    "buenos", "dias", "tardes", "noches",
+
+    # Palabras de resumen
+    "resume",
+    "resumen",
+    "resumelo",
+    "resúmelo",
+    "resumir", "resumela"
 }
+
+
+#-------Palabras de resumen
+RESUMEN_KEYWORDS = {
+    "resume", "resumen", "resumelo", "resumir", 
+    "hazme un resumen", "dame un resumen", 
+    "más corto", "más resumido", "resumido"
+}
+
 
 # --- Lógica de Chitchat Mejorada (listas base) ---
 SALUDOS_KEYWORDS = {"hola", "buenos dias", "buenas tardes", "buenas noches", "hey", "que tal", "buen dia"}
@@ -131,17 +155,17 @@ def limpiar_para_langdetect(texto: str) -> str:
 
 def contiene_palabra_de(lista_palabras: set, texto: str) -> bool:
     """
-    Devuelve True si alguna frase/palabra de la lista aparece en el texto.
+    Detecta chitchat usando coincidencias REGEX por palabra/frase completa,
+    evitando casos como 'holaresumen.pdf'.
     """
     for p in lista_palabras:
-        if p in texto:
+        pattern = rf"\b{re.escape(p)}\b"
+        if re.search(pattern, texto):
             return True
     return False
 
 def handle_chitchat_advanced(pregunta_limpia: str) -> str | None:
-    """
-    Chitchat mejorado: no depende de coincidencia exacta, sino de palabras/frases.
-    """
+
     if contiene_palabra_de(SALUDOS_KEYWORDS, pregunta_limpia):
         return "¡Hola! Soy PoliChat, tu asistente de anuncios. ¿En qué puedo ayudarte hoy?"
 
@@ -157,13 +181,16 @@ def handle_chitchat_advanced(pregunta_limpia: str) -> str | None:
     if contiene_palabra_de(IDENTIDAD_KEYWORDS, pregunta_limpia):
         return "Soy PoliChat, un asistente de IA diseñado para ayudarte a encontrar información en los anuncios y documentos de la comunidad."
 
-    return None  # No es chitchat
-
+    return None
 
 class ChatBot:
 
     def __init__(self):
-        print("⚙️ [__init__] Inicializando ChatBot (Estado EN MEMORIA)...")
+        logging.info(jsonlib.dumps({
+            "event": "init_bot",
+            "status": "initializing"
+        }))
+
         # --- Carga Perezosa (Lazy Loading) ---
         self._modelo_embeddings = None
         self._modelo = None
@@ -172,7 +199,7 @@ class ChatBot:
         # --- Estado en Memoria (STATEFUL) ---
         self.historial = InMemoryChatMessageHistory()
         self.sesiones_estado = {}
-        
+        self.cache_idioma = {}
         print("✅ [__init__] ChatBot listo (sin modelos cargados).")
 
     # =========================
@@ -187,7 +214,8 @@ class ChatBot:
             try:
                 self._modelo_embeddings = HuggingFaceEmbeddings(
                     model_name=EMBEDDINGS_MODEL_NAME, # Usa variable global
-                    model_kwargs={"local_files_only": False}
+                    model_kwargs={"local_files_only": False},
+                    encode_kwargs={"normalize_embeddings": True}  # Normaliza embeddings
                 )
                 print(f" <i> [Lazy Load] Embeddings ({EMBEDDINGS_MODEL_NAME}) cargados.")
             except Exception as e:
@@ -273,6 +301,40 @@ class ChatBot:
         except Exception as e:
             print(f"💥 [eliminar_pdf] Error fatal eliminando PDF ({pdf_name}): {e}")
 
+    #manejo de fechas
+    def _extraer_fechas(self, texto):
+        patrones = [
+            r"\d{1,2} de [a-zA-Z]+ de \d{4}",
+            r"\d{1,2}/\d{1,2}/\d{4}",
+            r"\d{4}-\d{2}-\d{2}"
+        ]
+
+        fechas = []
+        for p in patrones:
+            for f in re.findall(p, texto, flags=re.IGNORECASE):
+                fechas.append(f)
+        return fechas
+
+    def _clasificar_fechas(self, lista_fechas):
+        hoy = datetime.now()
+        resultado = []
+
+        for f in lista_fechas:
+            dt = parse_date(f, languages=['es'])
+            if not dt:
+                continue
+
+            if dt.date() < hoy.date():
+                status = "PASADO"
+            elif dt.date() > hoy.date():
+                status = "FUTURO"
+            else:
+                status = "HOY"
+
+            resultado.append((f, status))
+
+        return resultado
+
     # =========================
     # Manejo de sesión / flujo (Estado en Memoria)
     # =========================
@@ -302,6 +364,38 @@ class ChatBot:
         if "ayuda" in pregunta_norm:
             return "AYUDA"
         return "RAG"
+    
+    ##Funcion para resumir
+    def _resumir_ultima_respuesta(self):
+        """
+        Usa el LLM para resumir la última respuesta del chatbot.
+        """
+        # No hay historial suficiente
+        if not self.historial.messages or len(self.historial.messages) < 2:
+            return "No tengo información reciente para resumir."
+
+        # Último mensaje del asistente
+        ultimo = self.historial.messages[-1]
+        if not isinstance(ultimo, AIMessage):
+            return "No tengo información reciente para resumir."
+
+        texto = ultimo.content
+
+        prompt = f"""
+    Resume el siguiente texto de forma breve, clara y concisa:
+
+    Texto:
+    {texto}
+
+    Resumen:
+    """
+
+        try:
+            respuesta = self.modelo.invoke([HumanMessage(content=prompt)])
+            return respuesta.content.strip()
+        except:
+            return "Hubo un problema al generar el resumen."
+
 
     # =========================
     # Flujo guiado de soporte (SIN CAMBIOS)
@@ -327,7 +421,7 @@ class ChatBot:
                  return "El dato que me proporcionaste no parece un correo o teléfono válido. Intenta de nuevo."
              datos["contacto"] = texto
              
-        # ... resto de la lógica del flujo ...
+       
         
         # Fallback por si algo sale mal
         session_state["flujo"] = None
@@ -345,16 +439,25 @@ class ChatBot:
             print("💥 [ask] Error: El modelo LLM o la Base de Datos no están disponibles.")
             return "Lo siento, estoy teniendo problemas técnicos. Mi base de conocimiento o mi modelo de IA no están disponibles en este momento."
 
-        print(f"🤔 [ask] Iniciando con la pregunta: {pregunta}")
+        logging.info(jsonlib.dumps({
+            "event": "ask_received",
+            "pregunta": pregunta
+        }))
+
         
         # Usamos normalizar_texto para limpieza general (acentos, mayúsculas)
         pregunta_norm = normalizar_texto(pregunta)
+        pregunta_para_detector = limpiar_para_langdetect(pregunta)
+
 
         # --- VALIDACIONES (NUEVA LÓGICA) ---
         
         # Prueba 1: Entrada Vacía
         if not pregunta_norm:
-            print(" <i> -> [ask] ⚠️ Detectada entrada vacía.")
+            logging.warning(jsonlib.dumps({
+                "event": "entrada_vacia"
+            }))
+
             return "No recibí ninguna pregunta. ¿Puedes intentarlo de nuevo?"
             
         # Prueba 2: Chitchat (Ahora más flexible)
@@ -364,37 +467,38 @@ class ChatBot:
             self.historial.add_message(HumanMessage(content=pregunta))
             self.historial.add_message(AIMessage(content=respuesta_chitchat))
             return respuesta_chitchat
+        
+        # Prueba 2B: Resumen
+        if contiene_palabra_de(RESUMEN_KEYWORDS, pregunta_norm):
+            respuesta_resumen = self._resumir_ultima_respuesta()
+            self.historial.add_message(HumanMessage(content=pregunta))
+            self.historial.add_message(AIMessage(content=respuesta_resumen))
+            return respuesta_resumen
             
-        # Prueba 3: Emojis, Idioma y Galimatías (Lógica corregida)
-        pregunta_para_detector = limpiar_para_langdetect(pregunta)
+        # --- Prueba 3: Emojis / Galimatías ---
+        if not pregunta_para_detector:
+            return "No entendí tu consulta. ¿Puedes reformularla?"
+
         num_palabras_limpias = len(pregunta_para_detector.split())
 
-        if not pregunta_para_detector:
-            print(" <i> -> [ask] ⚠️ Detectado spam (solo símbolos/emojis).")
-            return "No entendí tu consulta. ¿Puedes reformularla?"
-        
-        # Si tiene 3 o más palabras, somos estrictos con el idioma
-        if num_palabras_limpias >= 3:
-            try:
+        # --- DETECCIÓN DE IDIOMA CON CACHÉ ---
+        try:
+            if pregunta_para_detector in self.cache_idioma:
+                lang = self.cache_idioma[pregunta_para_detector]
+            else:
                 lang = detect(pregunta_para_detector)
-                if lang != 'es':
-                    print(f" <i> -> [ask] ⚠️ Detectado idioma no español ({lang}) en frase larga.")
-                    return "Lo siento, solo puedo responder en español."
-            except LangDetectException:
-                print(" <i> -> [ask] ⚠️ No se pudo detectar el idioma (incoherente).")
-                return "No entendí tu consulta, parece incoherente. ¿Puedes reformularla?"
-        else:
-            # Si tiene 1 o 2 palabras (ej. "inscripcion", "mbbsxaj")
-            # Solo revisamos si es galimatías indetectable
-            try:
-                detect(pregunta_para_detector) # Solo para ver si falla
-            except LangDetectException:
-                print(" <i> -> [ask] ⚠️ Detectada palabra incoherente ('mbbsxaj').")
-                return "No entendí tu consulta. ¿Puedes reformularla?"
-            # ¡NO BLOQUEAMOS por lang != 'es' en palabras cortas!
-            # Dejamos que "inscripcion" (o un typo) pase al RAG.
-            print(" <i> -> [ask] Palabra corta detectada. Dejando pasar a RAG.")
+                self.cache_idioma[pregunta_para_detector] = lang
+        except LangDetectException:
+            return "No entendí tu consulta, parece incoherente. ¿Puedes reformularla?"
 
+        # --- Reglas de idioma ---
+        if num_palabras_limpias >= 3 and lang != 'es':
+            # tolerancia para palabras mal escritas
+            tokens = pregunta_para_detector.split()
+            tokens_espanol = sum(1 for t in tokens if re.match(r"[a-záéíóúñü]+$", t))
+
+            if tokens_espanol / len(tokens) < 0.5:
+                return "Lo siento, solo puedo responder en español."
 
         # Prueba 4: Un solo término ambiguo (SIN CAMBIOS)
         if (num_palabras_limpias == 1 and 
@@ -469,7 +573,20 @@ Tu respuesta JSON:
                 **search_kwargs
             )
             contexto = "\n\n---\n\n".join([doc.page_content for doc, _ in documentos_relacionados])
-            print(f"📚 [ask] Documentos recuperados: {len(documentos_relacionados)}")
+            # --- FECHAS DETECTADAS ---
+            fechas_detectadas = self._extraer_fechas(contexto)
+            clasificacion_fechas = self._clasificar_fechas(fechas_detectadas)
+
+            tabla_fechas = "\n".join(
+                f"- {fecha}: {estado}"
+                for fecha, estado in clasificacion_fechas
+            )
+
+            logging.info(jsonlib.dumps({
+                "event": "rag_results",
+                "cantidad": len(documentos_relacionados)
+            }))
+
             
             if not contexto.strip():
                 print(" <i> -> [ask] ⚠️ No se encontró contexto en la BD.")
@@ -491,39 +608,40 @@ Tu respuesta JSON:
         hoy = datetime.now().strftime("%Y-m-%d") 
 
         PLANTILLA_PROMPT = """
-¡Instrucción Absoluta! Eres PoliChat.
-Tu tarea principal es responder la "Pregunta actual" usando el "Contexto disponible".
+        ¡Instrucción Absoluta! Eres PoliChat.
+        Tu tarea principal es responder la "Pregunta actual" usando el "Contexto disponible".
 
-**REGLA MÁS IMPORTANTE:** La fecha de hoy es **{fecha_actual}**.
-* Cuando encuentres fechas en el contexto, DEBES compararlas con la fecha de hoy.
-* Si una fecha ya pasó (es anterior a {fecha_actual}), DEBES decirlo en tiempo pasado (ej. "El examen FUE el...", "La fecha límite YA PASÓ el...").
-* Si una fecha es futura (es posterior a {fecha_actual}), DEBES decirlo en tiempo futuro (ej. "El examen SERÁ el...", "La fecha límite es el...").
-* NO te limites a copiar el texto del contexto. DEBES adaptar la respuesta al tiempo verbal correcto.
+        **REGLA MÁS IMPORTANTE:** La fecha de hoy es **{fecha_actual}**.
 
-**Regla de Contexto:**
-* Basa tu respuesta **únicamente** en el "Contexto disponible".
-* Si la información solicitada (o cualquier información relevante) NO está en el contexto, DEBES responder ÚNICA Y EXACTAMENTE:
-"Lo siento, no pude encontrar información sobre eso en mis documentos."
+        **Fechas detectadas en el contexto y su clasificación:**  
+        {tabla_fechas}
 
----
-**Contexto disponible:**
-{context}
----
-**Historial de conversación previa:**
-{chat_history}
----
-**Pregunta actual:**
-{question}
+        * Si una fecha está clasificada como PASADO, debes expresarla en pasado.
+        * Si está clasificada como FUTURO, debes expresarla en futuro.
+        * Si está HOY, debes expresarla como un evento del día presente.
 
-**Respuesta (adaptada al tiempo verbal correcto según la fecha de hoy):**
-"""
+        **Regla de Contexto:**
+        * Basa tu respuesta únicamente en el "Contexto disponible".
+        * Si la información NO está en el contexto, responde exactamente:
+        "Lo siento, no pude encontrar información sobre eso en mis documentos."
+
+        ---
+        **Contexto disponible:**
+        {context}
+        ---
+        **Pregunta actual:**
+        {question}
+
+        **Respuesta (con tiempos verbales correctos):**
+        """
+
         
         try:
             prompt_template = ChatPromptTemplate.from_template(PLANTILLA_PROMPT)
             prompt = prompt_template.format(
                 fecha_actual=hoy,
                 context=contexto,
-                chat_history=historial_texto,
+                tabla_fechas=tabla_fechas,
                 question=pregunta
             )
             print(f"📝 [ask] Prompt generado (primeros 300 chars): {prompt[:300]}")
@@ -534,7 +652,11 @@ Tu tarea principal es responder la "Pregunta actual" usando el "Contexto disponi
         # --- LLAMADA AL LLM Y GUARDADO EN HISTORIAL (SIN CAMBIOS) ---
         while True:
             try:
-                print("⚡ [ask] Llamando al modelo en OpenRouter...")
+                logging.info(jsonlib.dumps({
+                    "event": "lazy_load_embeddings",
+                    "status": "ok"
+                }))
+
                 respuesta = self.modelo.invoke([HumanMessage(content=prompt)])
                 print("✅ [ask] Respuesta recibida del modelo.")
                 break
