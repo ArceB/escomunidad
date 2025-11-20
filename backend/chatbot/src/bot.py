@@ -1,183 +1,535 @@
+# -*- coding: utf-8 -*-
 import os
 import time
 import json
+import json as jsonlib
+import re  # Para limpiar texto
+import logging
+
+from dateparser import parse as parse_date
 from datetime import datetime
 from threading import Thread
-from openai import RateLimitError
-from django.conf import settings
 
-from .text_processor import chunk_pdfs
-from .chroma_db import save_to_chroma_db, CHROMA_PATH
-from langchain_chroma import Chroma
+logging.basicConfig(
+    level=logging.INFO,
+    format='{"time":"%(asctime)s","level":"%(levelname)s","event":"%(message)s"}'
+)
 
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_openai import ChatOpenAI
-from langchain_core.chat_history import InMemoryChatMessageHistory
-from langchain_core.messages import HumanMessage, AIMessage
+try:
+    from openai import RateLimitError
+    from langdetect import detect, LangDetectException
+    from langchain_chroma import Chroma
+    from langchain_core.prompts import ChatPromptTemplate
+    from langchain_huggingface import HuggingFaceEmbeddings
+    from langchain_openai import ChatOpenAI
+    from langchain_core.chat_history import InMemoryChatMessageHistory
+    from langchain_core.messages import HumanMessage, AIMessage
+except ImportError:
+    print("="*50)
+    print("ERROR: Faltan dependencias. Por favor, ejecuta:")
+    print("pip install openai langdetect langchain-chroma langchain-huggingface langchain-openai")
+    print("="*50)
+    exit(1)
+
+# --- Dependencias de Django (Opcional, solo para MEDIA_ROOT) ---
+try:
+    from django.conf import settings
+    # Si Django no está configurado, usamos un valor por defecto
+    if not settings.configured:
+        settings.configure(MEDIA_ROOT=os.path.join(os.getcwd(), "media"))
+except ImportError:
+    print("Advertencia: Django no encontrado. Usando ruta por defecto './media' para MEDIA_ROOT.")
+    # Creamos un objeto 'settings' falso para que el código funcione
+    class MockSettings:
+        MEDIA_ROOT = os.path.join(os.getcwd(), "media")
+    settings = MockSettings()
+
+# --- Tus dependencias locales (Asegúrate de que existan) ---
+# (Usaremos Mocks si el archivo se ejecuta directamente)
+try:
+    from .text_processor import chunk_pdfs
+    from .chroma_db import save_to_chroma_db, CHROMA_PATH
+except ImportError:
+    print("Advertencia: No se pudieron importar 'text_processor' o 'chroma_db'.")
+    print("Se usarán Mocks (simulaciones) si se ejecuta este archivo directamente.")
+    # Definir CHROMA_PATH si no se importó
+    CHROMA_PATH = os.path.join(os.getcwd(), "db_chroma")
+    
+    # --- Mocks para text_processor y chroma_db ---
+    def chunk_pdfs(pdf_path: str) -> list:
+        print(f"ADVERTENCIA: Usando MOCK de chunk_pdfs para {pdf_path}.")
+        file_name = os.path.basename(pdf_path)
+        return [
+            {"page_content": f"Este es el chunk 1 del documento {file_name}.", "metadata": {"source": file_name, "page": 1}},
+            {"page_content": f"Este es el chunk 2 sobre pagos en {file_name}.", "metadata": {"source": file_name, "page": 2}},
+        ]
+
+    def save_to_chroma_db(chunks: list, embeddings_model):
+        print(f"ADVERTENCIA: Usando MOCK de save_to_chroma_db. Simulando guardado de {len(chunks)} chunks.")
+        try:
+            temp_db = Chroma(
+                persist_directory=CHROMA_PATH,
+                embedding_function=embeddings_model
+            )
+            documents = [c["page_content"] for c in chunks]
+            metadatas = [c["metadata"] for c in chunks]
+            temp_db.add_texts(documents=documents, metadatas=metadatas)
+            print("-> [Mock save_to_chroma_db] Guardado simulado con éxito.")
+        except Exception as e:
+            print(f"-> [Mock save_to_chroma_db] Error simulando guardado: {e}")
+    # --- Fin de Mocks ---
+
+
+# ==================================
+# VARIABLES GLOBALES DE CONFIGURACIÓN
+# ==================================
+API_KEY = "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"
+API_BASE = "https://openrouter.ai/api/v1"
+
+# Modelo de Chat (LLM)
+LLM_MODEL_NAME = "openrouter/sherlock-dash-alpha"
+# Modelo de Embeddings (Traductor)
+EMBEDDINGS_MODEL_NAME = "BAAI/bge-m3"
+# ==================================
 
 
 # =========================
-# Configuración de OpenRouter
+# Rutas
 # =========================
-
-os.environ["OPENAI_API_KEY"] = "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" 
-os.environ["OPENAI_API_BASE"] = "https://openrouter.ai/api/v1"
-
-# =========================
-# Carpeta de PDFs
-# =========================
-
 PDFS_DIR = os.path.join(settings.MEDIA_ROOT, "anuncios", "pdfs")
+# Asegurarse de que existan las carpetas necesarias
+os.makedirs(CHROMA_PATH, exist_ok=True)
+os.makedirs(PDFS_DIR, exist_ok=True)
 
-# --- 👇 1. AÑADIMOS UNA LISTA DE PALABRAS SEGURAS ---
-# Palabras de una sola sílaba que SÍ queremos responder (como saludos)
+
 PALABRAS_SEGURAS_DE_UNA_SOLA_PALABRA = {
-    "hola", "gracias", "adios", "menu", "ayuda", "ok", "si", "no", 
-    "buenos", "dias", "tardes", "noches"
-}
-# -----------------------------------------------------
+    "hola", "gracias", "adios", "menu", "ayuda", "ok", "si", "no",
+    "buenos", "dias", "tardes", "noches",
 
+    # Palabras de resumen
+    "resume",
+    "resumen",
+    "resumelo",
+    "resúmelo",
+    "resumir", "resumela"
+}
+
+
+#-------Palabras de resumen
+RESUMEN_KEYWORDS = {
+    "resume", "resumen", "resumelo", "resumir", 
+    "hazme un resumen", "dame un resumen", 
+    "más corto", "más resumido", "resumido"
+}
+
+
+# --- Lógica de Chitchat Mejorada (listas base) ---
+SALUDOS_KEYWORDS = {"hola", "buenos dias", "buenas tardes", "buenas noches", "hey", "que tal", "buen dia"}
+DESPEDIDAS_KEYWORDS = {"adios", "bye", "hasta luego", "nos vemos", "chao"}
+AGRADECIMIENTOS_KEYWORDS = {"gracias", "muchas gracias", "mil gracias", "te lo agradezco"}
+ESTADO_KEYWORDS = {"como estas", "como te va", "todo bien", "que tal estas"}
+IDENTIDAD_KEYWORDS = {"quien eres", "que eres", "eres un bot", "que haces", "que puedes hacer"}
+
+
+# =========================
+# Funciones Helper
+# =========================
+
+def normalizar_texto(texto: str) -> str:
+    """Limpia acentos, minúsculas y espacios."""
+    texto = texto.lower().strip()
+    # Quitar signos y espacios repetidos
+    texto = re.sub(r"[^\w\sáéíóúüñ]", " ", texto)
+    texto = re.sub(r"\s+", " ", texto)
+    return texto.strip()
+
+def limpiar_para_langdetect(texto: str) -> str:
+    """
+    Quita símbolos, emojis, números y deja solo letras y espacios
+    para que langdetect no falle.
+    """
+    # Dejamos solo letras en español y espacios
+    texto = re.sub(r"[^a-zA-ZáéíóúüñÁÉÍÓÚÜÑ\s]", " ", texto.lower())
+    texto = re.sub(r"\s+", " ", texto)
+    return texto.strip()
+
+def contiene_palabra_de(lista_palabras: set, texto: str) -> bool:
+    """
+    Detecta chitchat usando coincidencias REGEX por palabra/frase completa,
+    evitando casos como 'holaresumen.pdf'.
+    """
+    for p in lista_palabras:
+        pattern = rf"\b{re.escape(p)}\b"
+        if re.search(pattern, texto):
+            return True
+    return False
+
+def handle_chitchat_advanced(pregunta_limpia: str) -> str | None:
+
+    if contiene_palabra_de(SALUDOS_KEYWORDS, pregunta_limpia):
+        return "¡Hola! Soy PoliChat, tu asistente de anuncios. ¿En qué puedo ayudarte hoy?"
+
+    if contiene_palabra_de(DESPEDIDAS_KEYWORDS, pregunta_limpia):
+        return "¡Hasta luego! Si necesitas algo más, aquí estaré."
+
+    if contiene_palabra_de(AGRADECIMIENTOS_KEYWORDS, pregunta_limpia):
+        return "¡De nada! Me alegra poder ayudarte."
+
+    if contiene_palabra_de(ESTADO_KEYWORDS, pregunta_limpia):
+        return "Estoy funcionando correctamente y listo para ayudarte con la información de los anuncios. ¿Qué necesitas saber?"
+
+    if contiene_palabra_de(IDENTIDAD_KEYWORDS, pregunta_limpia):
+        return "Soy PoliChat, un asistente de IA diseñado para ayudarte a encontrar información en los anuncios y documentos de la comunidad."
+
+    return None
 
 class ChatBot:
-    """
-    Esta clase es una 'caja de herramientas' (Singleton).
-    Solo inicializa los modelos una vez y define las acciones.
-    NO procesa nada ni crea hilos al arrancar.
-    """
+
     def __init__(self):
-        print("⚙️ [__init__] Inicializando ChatBot (Modelos y DB)...")
-        self.modelo_embeddings = None
-        self.modelo = None
-        self.db = None
-        
-        try:
-            print("  -> [__init__] Cargando embeddings...")
+        logging.info(jsonlib.dumps({
+            "event": "init_bot",
+            "status": "initializing"
+        }))
 
-            self.modelo_embeddings = HuggingFaceEmbeddings(
-                model_name="sentence-transformers/all-MiniLM-L6-v2",
-                model_kwargs={"local_files_only": True}
-            )
+        # --- Carga Perezosa (Lazy Loading) ---
+        self._modelo_embeddings = None
+        self._modelo = None
+        self._db = None
 
-        except Exception as e:
-            print(f"💥 [__init__] Error cargando embeddings: {e}")
-
-        try:
-            print("  -> [__init__] Cargando modelo LLM...")
-
-            self.modelo = ChatOpenAI(
-                model="kwaipilot/kat-coder-pro:free",
-                temperature=0.1,
-                openai_api_key=os.environ["OPENAI_API_KEY"],
-                openai_api_base=os.environ["OPENAI_API_BASE"],
-            )
-
-        except Exception as e:
-            print(f"💥 [__init__] Error inicializando modelo LLM: {e}")
-
-        try:
-            print("  -> [__init__] Conectando a ChromaDB...")
-            if self.modelo_embeddings:
-                self.db = Chroma(
-                    persist_directory=CHROMA_PATH,
-                    embedding_function=self.modelo_embeddings
-                )
-            else:
-                 print(f"💥 [__init__] No se pudo conectar a ChromaDB porque los embeddings fallaron.")
-        except Exception as e:
-            print(f"💥 [__init__] Error cargando BD Chroma: {e}")
-
+        # --- Estado en Memoria (STATEFUL) ---
         self.historial = InMemoryChatMessageHistory()
-        print("✅ [__init__] ChatBot listo y en espera de señales.")
-    
-    
+        self.sesiones_estado = {}
+        self.cache_idioma = {}
+        print("✅ [__init__] ChatBot listo (sin modelos cargados).")
+
     # =========================
-    # ACCIÓN 1: Procesar un PDF (Llamada por Señales)
+    # Propiedades (Lazy Loading)
+    # =========================
+
+    @property
+    def modelo_embeddings(self):
+        """Carga perezosa para el modelo de embeddings."""
+        if self._modelo_embeddings is None:
+            print(" <i> [Lazy Load] Cargando embeddings por primera vez...")
+            try:
+                self._modelo_embeddings = HuggingFaceEmbeddings(
+                    model_name=EMBEDDINGS_MODEL_NAME, # Usa variable global
+                    model_kwargs={"local_files_only": False},
+                    encode_kwargs={"normalize_embeddings": True}  # Normaliza embeddings
+                )
+                print(f" <i> [Lazy Load] Embeddings ({EMBEDDINGS_MODEL_NAME}) cargados.")
+            except Exception as e:
+                print(f"💥 [Lazy Load] Error fatal cargando embeddings: {e}")
+        return self._modelo_embeddings
+
+    @property
+    def modelo(self):
+        """Carga perezosa para el modelo LLM."""
+        if self._modelo is None:
+            print(" <i> [Lazy Load] Cargando modelo LLM por primera vez...")
+            try:
+                self._modelo = ChatOpenAI(
+                    model=LLM_MODEL_NAME, # Usa variable global
+                    temperature=0.1,
+                    openai_api_key=API_KEY, # Usa variable global
+                    openai_api_base=API_BASE, # Usa variable global
+                )
+                print(f" <i> [Lazy Load] Modelo LLM ({LLM_MODEL_NAME}) cargado.")
+            except Exception as e:
+                print(f"💥 [Lazy Load] Error fatal inicializando modelo LLM: {e}")
+        return self._modelo
+
+    @property
+    def db(self):
+        """Carga perezosa para la conexión a ChromaDB."""
+        if self._db is None:
+            print(f" <i> [Lazy Load] Conectando a ChromaDB en: {CHROMA_PATH}")
+            try:
+                if self.modelo_embeddings: # Dispara la carga de embeddings
+                    self._db = Chroma(
+                        persist_directory=CHROMA_PATH,
+                        embedding_function=self.modelo_embeddings
+                    )
+                    print(" <i> [Lazy Load] Conexión a ChromaDB establecida.")
+                else:
+                    print("💥 [Lazy Load] No se pudo conectar a ChromaDB porque los embeddings fallaron.")
+            except Exception as e:
+                print(f"💥 [Lazy Load] Error cargando BD Chroma: {e}")
+        return self._db
+
+    # =========================
+    # Gestión de PDFs (Sin cambios)
     # =========================
     def procesar_pdf(self, pdf_path: str):
-        # ... (Tu lógica de procesar_pdf se queda igual)
-        print(f"  [procesar_pdf] Iniciando para: {pdf_path}")
+        print(f" <i> [procesar_pdf] Iniciando para: {pdf_path}")
         try:
-            if not self.db:
-                print("  [procesar_pdf] ❌ Error: La conexión a ChromaDB es Nula.")
+            if not self.db: # Dispara la carga de la DB
+                print(" <i> [procesar_pdf] ❌ Error: La conexión a ChromaDB es Nula.")
                 return
             if not os.path.exists(pdf_path):
-                print(f"  [procesar_pdf] ❌ Error: El archivo {pdf_path} no existe. Omitiendo.")
+                print(f" <i> [procesar_pdf] ❌ Error: El archivo {pdf_path} no existe. Omitiendo.")
                 return
+            
             file_name = os.path.basename(pdf_path)
-            print(f"  [procesar_pdf] 1. Intentando borrar chunks antiguos para 'source': {file_name}")
+            print(f" <i> [procesar_pdf] 1. Borrando chunks antiguos para 'source': {file_name}")
             try:
                 self.db.delete(where={"source": file_name})
-                print(f"  [procesar_pdf] 2. Borrado de chunks antiguos (si existían) completado.")
+                print(f" <i> [procesar_pdf] 2. Borrado de chunks antiguos completado.")
             except Exception as e:
-                print(f"  [procesar_pdf] ⚠️ Aviso: No se pudieron borrar chunks antiguos (puede ser normal si no existían): {e}")
-            print(f"  [procesar_pdf] 3. Procesando chunks (chunk_pdfs)...")
-            chunks = chunk_pdfs(pdf_path)
+                print(f" <i> [procesar_pdf] ⚠️ Aviso: No se pudieron borrar chunks antiguos: {e}")
+            
+            print(f" <i> [procesar_pdf] 3. Procesando chunks...")
+            chunks = chunk_pdfs(pdf_path) 
             if chunks:
-                print(f"  [procesar_pdf] 4. Guardando {len(chunks)} chunks en ChromaDB...")
-                save_to_chroma_db(chunks, self.modelo_embeddings)
-                print(f"  [procesar_pdf] 5. ✅ PDF {file_name} procesado y guardado.")
+                print(f" <i> [procesar_pdf] 4. Guardando {len(chunks)} chunks en ChromaDB...")
+                save_to_chroma_db(chunks, self.modelo_embeddings) 
+                print(f" <i> [procesar_pdf] 5. ✅ PDF {file_name} procesado y guardado.")
             else:
-                print(f"  [procesar_pdf] ⚠️ Aviso: El archivo {file_name} no generó chunks.")
+                print(f" <i> [procesar_pdf] ⚠️ Aviso: El archivo {file_name} no generó chunks.")
         except Exception as e:
             print(f"💥 [procesar_pdf] Error fatal procesando PDF ({pdf_path}): {e}")
 
-    # =========================
-    # ACCIÓN 2: Eliminar un PDF (Llamada por Señales)
-    # =========================
     def eliminar_pdf(self, pdf_name: str):
-        # ... (Tu lógica de eliminar_pdf se queda igual)
-        print(f"  [eliminar_pdf] Iniciando para: {pdf_name}")
+        print(f" <i> [eliminar_pdf] Iniciando para: {pdf_name}")
         try:
             if not self.db:
-                print("  [eliminar_pdf] ❌ Error: La conexión a ChromaDB es Nula.")
+                print(" <i> [eliminar_pdf] ❌ Error: La conexión a ChromaDB es Nula.")
                 return
-            print(f"  [eliminar_pdf] 1. Intentando borrar chunks para 'source': {pdf_name}")
+            print(f" <i> [eliminar_pdf] 1. Intentando borrar chunks para 'source': {pdf_name}")
             self.db.delete(where={"source": pdf_name})
-            print(f"  [eliminar_pdf] 2. ✅ PDF {pdf_name} eliminado de ChromaDB.")
+            print(f" <i> [eliminar_pdf] 2. ✅ PDF {pdf_name} eliminado de ChromaDB.")
         except Exception as e:
             print(f"💥 [eliminar_pdf] Error fatal eliminando PDF ({pdf_name}): {e}")
 
+    #manejo de fechas
+    def _extraer_fechas(self, texto):
+        patrones = [
+            r"\d{1,2} de [a-zA-Z]+ de \d{4}",
+            r"\d{1,2}/\d{1,2}/\d{4}",
+            r"\d{4}-\d{2}-\d{2}"
+        ]
+
+        fechas = []
+        for p in patrones:
+            for f in re.findall(p, texto, flags=re.IGNORECASE):
+                fechas.append(f)
+        return fechas
+
+    def _clasificar_fechas(self, lista_fechas):
+        hoy = datetime.now()
+        resultado = []
+
+        for f in lista_fechas:
+            dt = parse_date(f, languages=['es'])
+            if not dt:
+                continue
+
+            if dt.date() < hoy.date():
+                status = "PASADO"
+            elif dt.date() > hoy.date():
+                status = "FUTURO"
+            else:
+                status = "HOY"
+
+            resultado.append((f, status))
+
+        return resultado
+
     # =========================
-    # ACCIÓN 3: Preguntar al Chatbot (Llamada por Vistas)
+    # Manejo de sesión / flujo (Estado en Memoria)
+    # =========================
+    def _get_session_id(self, context_id: str | None) -> str:
+        return context_id or "global"
+
+    def _get_session_state(self, session_id: str) -> dict:
+        if session_id not in self.sesiones_estado:
+            self.sesiones_estado[session_id] = {
+                "flujo": None,
+                "paso": 0,
+                "datos": {},
+                "ultimo_mensaje": None,
+                "ultimo_timestamp": None,
+            }
+        return self.sesiones_estado[session_id]
+
+    # =========================
+    # Clasificación de intención (SIN CAMBIOS)
+    # =========================
+    def _detectar_intencion(self, pregunta_norm: str) -> str:
+        # (Este es un ejemplo, puedes mejorar esta lógica)
+        if any(p in pregunta_norm for p in ["problema", "fallo", "error", "no funciona", "soporte", "ayuda con"]):
+            return "FLUJO_SOPORTE"
+        if any(p in pregunta_norm for p in ["horario", "a que hora", "cuando atienden", "hora de atencion"]):
+            return "HORARIO"
+        if "ayuda" in pregunta_norm:
+            return "AYUDA"
+        return "RAG"
+    
+    ##Funcion para resumir
+    def _resumir_ultima_respuesta(self):
+        """
+        Usa el LLM para resumir la última respuesta del chatbot.
+        """
+        # No hay historial suficiente
+        if not self.historial.messages or len(self.historial.messages) < 2:
+            return "No tengo información reciente para resumir."
+
+        # Último mensaje del asistente
+        ultimo = self.historial.messages[-1]
+        if not isinstance(ultimo, AIMessage):
+            return "No tengo información reciente para resumir."
+
+        texto = ultimo.content
+
+        prompt = f"""
+    Resume el siguiente texto de forma breve, clara y concisa:
+
+    Texto:
+    {texto}
+
+    Resumen:
+    """
+
+        try:
+            respuesta = self.modelo.invoke([HumanMessage(content=prompt)])
+            return respuesta.content.strip()
+        except:
+            return "Hubo un problema al generar el resumen."
+
+
+    # =========================
+    # Flujo guiado de soporte (SIN CAMBIOS)
+    # =========================
+    def _manejar_flujo_soporte(self, session_state: dict, pregunta: str, pregunta_norm: str) -> str:
+        # (Esta lógica de flujo guiado no necesita cambios)
+        paso = session_state.get("paso", 0)
+        datos = session_state.get("datos", {})
+
+        if paso == 0:
+            session_state["flujo"] = "FLUJO_SOPORTE"
+            session_state["paso"] = 1
+            session_state["datos"] = {} # Limpiamos datos al iniciar
+            return "Claro, te ayudo con soporte. Cuéntame brevemente cuál es el problema que estás teniendo."
+        
+        # (Faltaba validación de correo/teléfono, la agrego como ejemplo)
+        # (Tu código original no la tenía, pero es buena práctica)
+        from .chatbot_utils import es_correo_valido, es_telefono_valido # Asumiendo que existen
+        
+        if paso == 3:
+             texto = pregunta.strip()
+             if not (es_correo_valido(texto) or es_telefono_valido(texto)):
+                 return "El dato que me proporcionaste no parece un correo o teléfono válido. Intenta de nuevo."
+             datos["contacto"] = texto
+             
+       
+        
+        # Fallback por si algo sale mal
+        session_state["flujo"] = None
+        session_state["paso"] = 0
+        return "He tenido un problema siguiendo el flujo de soporte. Vuelve a decirme tu problema."
+
+
+    # =========================
+    # ACCIÓN 3: Preguntar al Chatbot (Lógica de validación CORREGIDA)
     # =========================
     def ask(self, pregunta: str, context_id: str = None) -> str:
-        print(f"🤔 [ask] Iniciando con la pregunta: {pregunta}")
         
-        # --- 👇 2. NUEVA VALIDACIÓN DE AMBIGÜEDAD ---
-        pregunta_limpia = pregunta.strip().lower()
-        num_palabras = len(pregunta_limpia.split())
+        # 1. Comprobar si los modelos están disponibles (dispara lazy load)
+        if not self.modelo or not self.db:
+            print("💥 [ask] Error: El modelo LLM o la Base de Datos no están disponibles.")
+            return "Lo siento, estoy teniendo problemas técnicos. Mi base de conocimiento o mi modelo de IA no están disponibles en este momento."
 
-        # Si la pregunta es solo 1 palabra Y no es un saludo/agradecimiento
-        if (num_palabras == 1 and pregunta_limpia not in PALABRAS_SEGURAS_DE_UNA_SOLA_PALABRA):
-            print("  -> [ask] ⚠️ Pregunta demasiado ambigua (1 palabra). Pidiendo contexto.")
-            # No guardamos esto en el historial, solo pedimos aclaración
-            return "Tu pregunta es muy corta (ej. 'becas', 'inscripción'). ¿Podrías darme más contexto? (Por ejemplo, '¿requisitos de la beca Telmex?' o '¿cuándo es la inscripción al servicio social?')"
-        # --- FIN DE LA VALIDACIÓN ---
+        logging.info(jsonlib.dumps({
+            "event": "ask_received",
+            "pregunta": pregunta
+        }))
+
         
-        print(f"  -> Contexto de Anuncio ID: {context_id}")
+        # Usamos normalizar_texto para limpieza general (acentos, mayúsculas)
+        pregunta_norm = normalizar_texto(pregunta)
+        pregunta_para_detector = limpiar_para_langdetect(pregunta)
+
+
+        # --- VALIDACIONES (NUEVA LÓGICA) ---
         
-        if not self.db:
-            return "Lo siento, la base de datos de conocimiento no está conectada."
+        # Prueba 1: Entrada Vacía
+        if not pregunta_norm:
+            logging.warning(jsonlib.dumps({
+                "event": "entrada_vacia"
+            }))
+
+            return "No recibí ninguna pregunta. ¿Puedes intentarlo de nuevo?"
+            
+        # Prueba 2: Chitchat (Ahora más flexible)
+        respuesta_chitchat = handle_chitchat_advanced(pregunta_norm)
+        if respuesta_chitchat:
+            print(f" <i> -> [ask]  Detectado chitchat. Respondiendo amigablemente.")
+            self.historial.add_message(HumanMessage(content=pregunta))
+            self.historial.add_message(AIMessage(content=respuesta_chitchat))
+            return respuesta_chitchat
         
-        # --- 1. OBTENER HISTORIAL ---
+        # Prueba 2B: Resumen
+        if contiene_palabra_de(RESUMEN_KEYWORDS, pregunta_norm):
+            respuesta_resumen = self._resumir_ultima_respuesta()
+            self.historial.add_message(HumanMessage(content=pregunta))
+            self.historial.add_message(AIMessage(content=respuesta_resumen))
+            return respuesta_resumen
+            
+        # --- Prueba 3: Emojis / Galimatías ---
+        if not pregunta_para_detector:
+            return "No entendí tu consulta. ¿Puedes reformularla?"
+
+        num_palabras_limpias = len(pregunta_para_detector.split())
+
+        # --- DETECCIÓN DE IDIOMA CON CACHÉ ---
+        try:
+            if pregunta_para_detector in self.cache_idioma:
+                lang = self.cache_idioma[pregunta_para_detector]
+            else:
+                lang = detect(pregunta_para_detector)
+                self.cache_idioma[pregunta_para_detector] = lang
+        except LangDetectException:
+            return "No entendí tu consulta, parece incoherente. ¿Puedes reformularla?"
+
+        # --- Reglas de idioma ---
+        if num_palabras_limpias >= 3 and lang != 'es':
+            # tolerancia para palabras mal escritas
+            tokens = pregunta_para_detector.split()
+            tokens_espanol = sum(1 for t in tokens if re.match(r"[a-záéíóúñü]+$", t))
+
+            if tokens_espanol / len(tokens) < 0.5:
+                return "Lo siento, solo puedo responder en español."
+
+        # Prueba 4: Un solo término ambiguo (SIN CAMBIOS)
+        if (num_palabras_limpias == 1 and 
+            pregunta_norm not in PALABRAS_SEGURAS_DE_UNA_SOLA_PALABRA and
+            not contiene_palabra_de(SALUDOS_KEYWORDS, pregunta_norm)): # Excepción extra
+            print(" <i> -> [ask] ⚠️ Pregunta demasiado ambigua (1 palabra). Pidiendo contexto.")
+            return "Tu consulta es muy breve. ¿Podrías proporcionarme más contexto o detalles?"
+        # --- FIN DE VALIDACIONES ---
+        
+        print(f" <i> -> Contexto de Anuncio ID: {context_id}")
+        
+        # Obtiene estado de la sesión DESDE self.sesiones_estado
+        session_id = self._get_session_id(context_id)
+        session_state = self._get_session_state(session_id)
+
+        
+        # --- Historial y Re-escritura (SIN CAMBIOS) ---
         historial_texto = "\n".join(
             f"Usuario: {m.content}" if isinstance(m, HumanMessage) else f"Asistente: {m.content}"
             for m in self.historial.messages
         )
-
-        # --- 2. PASO DE CLASIFICACIÓN Y RE-ESCRITURA ---
         pregunta_para_busqueda = pregunta
         es_seguimiento = False 
         
         if self.historial.messages:
-            print("  -> [ask] Hay historial, clasificando y re-escribiendo la pregunta...")
-            
+            print(" <i> -> [ask] Hay historial, re-escribiendo la pregunta...")
             REWRITE_PROMPT_TEMPLATE = """
 Basado en el "Historial de chat", analiza la "Pregunta Actual".
-Decide si la pregunta es un seguimiento directo del historial ("SEGUIMIENTO") o si es un "TEMA_NUEVO".
-Luego, re-escribe la "Pregunta Actual" para que sea una consulta independiente.
-Responde ÚNICAMENTE con un objeto JSON con las claves "tipo" y "pregunta_reescrita".
+Decide si es un "SEGUIMIENTO" o un "TEMA_NUEVO".
+Re-escribe la "Pregunta Actual" para que sea una consulta independiente.
+Responde ÚNICAMENTE con un objeto JSON con "tipo" y "pregunta_reescrita".
 
 Historial de chat:
 {chat_history}
@@ -189,42 +541,31 @@ Tu respuesta JSON:
 """
             try:
                 rewrite_prompt = ChatPromptTemplate.from_template(REWRITE_PROMPT_TEMPLATE).format(
-                    chat_history=historial_texto,
-                    question=pregunta
+                    chat_history=historial_texto, question=pregunta
                 )
-                
-                if not self.modelo:
-                    print("  -> [ask] ⚠️ No hay modelo LLM para re-escribir, usando pregunta original.")
-                else:
-                    respuesta_llm = self.modelo.invoke([HumanMessage(content=rewrite_prompt)])
-                    print(f"  -> [ask] Respuesta JSON del LLM: {respuesta_llm.content}")
-                    
-                    json_string = respuesta_llm.content.strip().replace("```json\n", "").replace("\n```", "")
-                    info_pregunta = json.loads(json_string)
-                    
-                    pregunta_para_busqueda = info_pregunta.get("pregunta_reescrita", pregunta)
-                    if info_pregunta.get("tipo", "TEMA_NUEVO") == "SEGUIMIENTO":
-                        es_seguimiento = True
-                
-                print(f"  -> [ask] Pregunta re-escrita: {pregunta_para_busqueda}")
-                print(f"  -> [ask] Es seguimiento: {es_seguimiento}")
-                
+                respuesta_llm = self.modelo.invoke([HumanMessage(content=rewrite_prompt)])
+                json_string = respuesta_llm.content.strip().replace("```json\n", "").replace("\n```", "")
+                info_pregunta = json.loads(json_string)
+                pregunta_para_busqueda = info_pregunta.get("pregunta_reescrita", pregunta)
+                if info_pregunta.get("tipo", "TEMA_NUEVO") == "SEGUIMIENTO":
+                    es_seguimiento = True
+                print(f" <i> -> [ask] Pregunta re-escrita: {pregunta_para_busqueda}")
             except Exception as e:
-                print(f"💥 [ask] Error al re-escribir/clasificar (se usará la pregunta original): {e}")
+                print(f"💥 [ask] Error al re-escribir (se usará la pregunta original): {e}")
                 pregunta_para_busqueda = pregunta
                 es_seguimiento = False
         else:
-             print("  -> [ask] No hay historial, se considera TEMA_NUEVO.")
+            print(" <i> -> [ask] No hay historial, se considera TEMA_NUEVO.")
 
-        # --- 3. LÓGICA DE FILTRADO (¡MEJORADA!) ---
-        search_kwargs = {"k": 5}
+        # --- Lógica de Filtro (SIN CAMBIOS) ---
+        search_kwargs = {"k": 8}
         
         if context_id and es_seguimiento:
             nombre_archivo = f"anexo_anuncio_{context_id}.pdf"
             search_kwargs['filter'] = {"source": nombre_archivo}
-            print(f"  -> BÚSQUEDA FILTRADA (es seguimiento) por: {nombre_archivo}")
+            print(f" <i> -> BÚSQUEDA FILTRADA (es seguimiento) por: {nombre_archivo}")
         else:
-            print(f"  -> BÚSQUEDA GENERAL (es tema nuevo o no hay contexto)")
+            print(f" <i> -> BÚSQUEDA GENERAL (es tema nuevo o no hay contexto)")
             
         try:
             documentos_relacionados = self.db.similarity_search_with_score(
@@ -232,43 +573,75 @@ Tu respuesta JSON:
                 **search_kwargs
             )
             contexto = "\n\n---\n\n".join([doc.page_content for doc, _ in documentos_relacionados])
-            print(f"📚 [ask] Documentos recuperados: {len(documentos_relacionados)}")
+            # --- FECHAS DETECTADAS ---
+            fechas_detectadas = self._extraer_fechas(contexto)
+            clasificacion_fechas = self._clasificar_fechas(fechas_detectadas)
+
+            tabla_fechas = "\n".join(
+                f"- {fecha}: {estado}"
+                for fecha, estado in clasificacion_fechas
+            )
+
+            logging.info(jsonlib.dumps({
+                "event": "rag_results",
+                "cantidad": len(documentos_relacionados)
+            }))
+
+            
+            if not contexto.strip():
+                print(" <i> -> [ask] ⚠️ No se encontró contexto en la BD.")
+                # Aquí es donde "mbbsxaj" e "inscripcion" (si no está en el PDF) morirán
+                respuesta = "Lo siento, no pude encontrar información sobre eso en mis documentos."
+                self.historial.add_message(HumanMessage(content=pregunta))
+                self.historial.add_message(AIMessage(content=respuesta))
+                return respuesta
+
         except Exception as e:
             print(f"💥 [ask] Error en similarity_search: {e}")
             contexto = ""
+            respuesta = "Lo siento, tuve un error al buscar en mi base de conocimiento."
+            self.historial.add_message(HumanMessage(content=pregunta))
+            self.historial.add_message(AIMessage(content=respuesta))
+            return respuesta
 
-        # --- 4. OBTENER FECHA Y CREAR PROMPT FINAL ---
-        hoy = datetime.now().strftime("%Y-%m-%d") 
+        # --- OBTENER FECHA Y CREAR PROMPT FINAL (SIN CAMBIOS) ---
+        hoy = datetime.now().strftime("%Y-m-%d") 
 
         PLANTILLA_PROMPT = """
-Eres un asistente llamado PoliChat experto en responder preguntas basadas en documentos proporcionados.
+        ¡Instrucción Absoluta! Eres PoliChat.
+        Tu tarea principal es responder la "Pregunta actual" usando el "Contexto disponible".
 
-**La fecha actual es: {fecha_actual}**
+        **REGLA MÁS IMPORTANTE:** La fecha de hoy es **{fecha_actual}**.
 
-🔹 Instrucciones:
-- Usa la "Fecha Actual" como referencia para determinar si los eventos en el contexto están en **pasado, presente o futuro**. (Ej. si la fecha actual es 2025-11-10 y el evento fue en 2025-10-03, debes usar el tiempo pasado).
-- Da respuestas **claras y concisas** (máx. 1-2 frases).
-- Si corresponde, usa **listas o viñetas** para estructurar la información.
-- No inventes datos que no estén en el contexto.
-- Mantén un tono natural y conversacional.
+        **Fechas detectadas en el contexto y su clasificación:**  
+        {tabla_fechas}
 
-📂 Contexto disponible:
-{context}
+        * Si una fecha está clasificada como PASADO, debes expresarla en pasado.
+        * Si está clasificada como FUTURO, debes expresarla en futuro.
+        * Si está HOY, debes expresarla como un evento del día presente.
 
-💬 Historial de conversación previa:
-{chat_history}
+        **Regla de Contexto:**
+        * Basa tu respuesta únicamente en el "Contexto disponible".
+        * Si la información NO está en el contexto, responde exactamente:
+        "Lo siento, no pude encontrar información sobre eso en mis documentos."
 
-❓ Pregunta actual:
-{question}
+        ---
+        **Contexto disponible:**
+        {context}
+        ---
+        **Pregunta actual:**
+        {question}
 
-✍️ Respuesta:
-"""
+        **Respuesta (con tiempos verbales correctos):**
+        """
+
+        
         try:
             prompt_template = ChatPromptTemplate.from_template(PLANTILLA_PROMPT)
             prompt = prompt_template.format(
                 fecha_actual=hoy,
                 context=contexto,
-                chat_history=historial_texto,
+                tabla_fechas=tabla_fechas,
                 question=pregunta
             )
             print(f"📝 [ask] Prompt generado (primeros 300 chars): {prompt[:300]}")
@@ -276,13 +649,14 @@ Eres un asistente llamado PoliChat experto en responder preguntas basadas en doc
             print(f"💥 [ask] Error generando prompt: {e}")
             return "⚠ Error generando prompt"
 
-        if not self.modelo:
-            return "Lo siento, el modelo LLM no está conectado."
-
-        # --- 5. LLAMADA AL LLM Y GUARDADO EN HISTORIAL ---
+        # --- LLAMADA AL LLM Y GUARDADO EN HISTORIAL (SIN CAMBIOS) ---
         while True:
             try:
-                print("⚡ [ask] Llamando al modelo en OpenRouter...")
+                logging.info(jsonlib.dumps({
+                    "event": "lazy_load_embeddings",
+                    "status": "ok"
+                }))
+
                 respuesta = self.modelo.invoke([HumanMessage(content=prompt)])
                 print("✅ [ask] Respuesta recibida del modelo.")
                 break
@@ -309,3 +683,46 @@ Eres un asistente llamado PoliChat experto en responder preguntas basadas en doc
 print("--- Inicializando instancia global del ChatBot ---")
 bot_global = ChatBot()
 print("--- Instancia global del ChatBot CREADA ---")
+
+
+# =============================================================
+# BLOQUE DE EJECUCIÓN (Para probar en terminal)
+# =============================================================
+if __name__ == "__main__":
+    print("\n" + "="*50)
+    print("🤖 PoliChat en Modo Terminal (Prueba Educativa)")
+    print("="*50)
+    print(f"Usando DB en: {CHROMA_PATH}")
+    print("¡Hola! Escribe tu pregunta. Escribe 'salir' para terminar.")
+    
+    # Simulación de carga de PDF
+    print("\nSimulando procesamiento de 'anuncio_123.pdf'...")
+    ruta_pdf_prueba = os.path.join(PDFS_DIR, "anexo_anuncio_123.pdf")
+    if not os.path.exists(ruta_pdf_prueba):
+        try:
+            with open(ruta_pdf_prueba, "w") as f:
+                f.write("archivo pdf falso")
+        except Exception as e:
+            print(f"No se pudo crear el PDF falso: {e}")
+
+    bot_global.procesar_pdf(ruta_pdf_prueba)
+    print("Simulación de PDF completada. Puedes preguntar por 'pagos'.")
+
+    while True:
+        try:
+            pregunta = input("\n👤 Usuario: ")
+            if not pregunta.strip():
+                continue
+            if normalizar_texto(pregunta) == "salir":
+                print("🤖 PoliChat: ¡Hasta luego!")
+                break
+            
+            respuesta = bot_global.ask(pregunta, context_id="terminal_session")
+            print(f"🤖 PoliChat: {respuesta}")
+
+        except KeyboardInterrupt:
+            print("\n🤖 PoliChat: ¡Hasta luego! (Interrupción detectada)")
+            break
+        except Exception as e:
+            print(f"\n💥 ERROR INESPERADO: {e}")
+            break

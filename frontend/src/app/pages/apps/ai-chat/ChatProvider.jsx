@@ -15,7 +15,7 @@ export function ChatProvider({ children }) {
 
   const currentChat = chats.find((chat) => chat.id === activeChatId);
 
-  // ✅ newMessage: siempre devuelve el chatId usado
+  // newMessage: siempre devuelve el chatId usado
   const newMessage = (chatId, data) => {
     const now = new Date();
     const msg = {
@@ -52,7 +52,7 @@ export function ChatProvider({ children }) {
     });
 
     setActiveChatId(idToUse);
-    return idToUse; // 👈 devolvemos el id efectivo
+    return idToUse; // 
   };
 
   const value = {
