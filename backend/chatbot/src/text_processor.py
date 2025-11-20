@@ -12,7 +12,7 @@ def chunk_pdfs(pdf_path: str) -> list[Document]:
 
     # Dividir en fragmentos manejables
     splitter = RecursiveCharacterTextSplitter(
-        chunk_size=800,
+        chunk_size=350,
         chunk_overlap=100
     )
     chunks = splitter.split_text(full_text)
