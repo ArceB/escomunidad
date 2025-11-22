@@ -2,11 +2,13 @@
 
 import { useNavigate, useParams, useLocation } from "react-router";
 import NavBar from "app/layouts/MainLayout/NavBar";
+import { useEffect, useState } from "react";
 
 // Local Imports
 import BlogCard7 from "app/pages/prototypes/blog-card-7";
 import { Page } from "components/shared/Page";
 import { Banner } from "app/pages/dashboards/principal/Banner";
+import axios from "utils/axios";
 
 // ----------------------------------------------------------------------
 
@@ -17,6 +19,20 @@ export default function AnunciosPage() {
 
   const mostrandoPendientes = location.pathname.includes("pendientes");
   const mostrandoRechazados = location.pathname.includes("rechazados");
+
+  const [entidades, setEntidades] = useState([]);
+  
+    useEffect(() => {
+      const fetchEntidades = async () => {
+        try {
+          const res = await axios.get("/entidades/"); // 👈 endpoint real
+          setEntidades(res.data);
+        } catch (err) {
+          console.error("Error cargando entidades:", err);
+        }
+      };
+      fetchEntidades();
+    }, []);
 
   return (
     <Page title={mostrandoPendientes ? "Anuncios Pendientes" : "Anuncios"}>
@@ -33,6 +49,7 @@ export default function AnunciosPage() {
 
         <BlogCard7
           entidadId={entidadId}
+          data={entidades}
           mostrandoPendientes={mostrandoPendientes}
           onCardClick={(anuncio) =>
             navigate(`/administracion/anuncios/${anuncio.id}`)

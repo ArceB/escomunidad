@@ -1,7 +1,7 @@
 // Import Dependencies
 import { useNavigate, useParams } from "react-router";
 import PropTypes from "prop-types";
-import { Fragment, useRef, useState } from "react";
+import { Fragment, useRef, useState, useEffect } from "react";
 import {
   Menu,
   MenuButton,
@@ -18,6 +18,9 @@ import {
 } from "@heroicons/react/24/outline";
 import { RiFilter3Line } from "react-icons/ri";
 import clsx from "clsx";
+import { Building2 } from "lucide-react";
+import axios from "utils/axios";
+
 
 // Local Imports
 import { Button, Input } from "components/ui";
@@ -28,9 +31,31 @@ import { useAuthContext } from "app/contexts/auth/context";
 // ----------------------------------------------------------------------
 
 export function Toolbar({ query, setQuery, mostrandoPendientes }) {
+  const navigate = useNavigate();
   const [showMobileSearch, setShowMobileSearch] = useState(false);
   const mobileSearchRef = useRef();
   const { isXs } = useBreakpointsContext();
+
+  const { id: entidadId } = useParams();
+  const [entidad, setEntidad] = useState(null);
+
+  useEffect(() => {
+    const fetchEntidad = async () => {
+      try {
+        const token = sessionStorage.getItem("authToken");
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+        const res = await axios.get(`/entidades/${entidadId}/`, { headers });
+
+        setEntidad(res.data);
+      } catch (err) {
+        console.error("Error cargando entidad:", err);
+      }
+    };
+
+    if (entidadId) fetchEntidad();
+  }, [entidadId]);
+
 
   useIsomorphicEffect(() => {
     if (showMobileSearch) mobileSearchRef?.current?.focus();
@@ -64,15 +89,33 @@ export function Toolbar({ query, setQuery, mostrandoPendientes }) {
         />
       ) : (
         <>
-          <div className="flex min-w-0 items-center space-x-1 ">
-            <h2 className="truncate text-xl font-medium text-gray-700 dark:text-dark-50 lg:text-2xl">
-              Anuncios
-            </h2>
-            <ActionMenu
-              mostrandoPendientes={mostrandoPendientes}
-            />
+          <div className="flex min-w-0 items-center space-x-2">
+            {/* Ícono tipo "Entidades" */}
+            <button
+              className="flex items-center text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400"
+              onClick={() => navigate("/administracion/entidades")}
+            >
+              <Building2 className="h-5 w-5" />
+            </button>
 
+            {/* Nombre de entidad */}
+            <span className="truncate text-xl font-medium text-gray-700 dark:text-dark-50 lg:text-2xl">
+              {entidad ? entidad.nombre : "Entidad"}
+            </span>
+
+
+            {/* Separador */}
+            <span className="text-gray-400">/</span>
+
+            {/* Texto Anuncios */}
+            <span className="truncate text-xl font-medium text-gray-700 dark:text-dark-50 lg:text-2xl">
+              Anuncios
+            </span>
+
+            {/* Menú desplegable existente */}
+            <ActionMenu mostrandoPendientes={mostrandoPendientes} />
           </div>
+
           <div className="flex items-center space-x-1 ">
             <Input
               classNames={{
