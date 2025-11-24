@@ -87,7 +87,7 @@ API_KEY = "sk-or-v1-60760d9c4deb5c52256c0db4f2651c6285e67945837ea87f47fb269a67b4
 API_BASE = "https://openrouter.ai/api/v1"
 
 # Modelo de Chat (LLM)
-LLM_MODEL_NAME = "openrouter/microsoft/phi-3.5-mini-128k-instruct"
+LLM_MODEL_NAME = "microsoft/phi-3.5-mini-128k-instruct"
 # Modelo de Embeddings (Traductor)
 EMBEDDINGS_MODEL_NAME = "BAAI/bge-m3"
 # ==================================
