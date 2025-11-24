@@ -10,6 +10,7 @@ from rest_framework_simplejwt.views import TokenViewBase, TokenRefreshView
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
+from chatbot.src.bot import bot_global
 
 from datetime import date
 
@@ -539,6 +540,18 @@ class AnuncioViewSet(viewsets.ModelViewSet):
         content.append(Paragraph(f"<b>Fecha fin:</b> {anuncio.fecha_fin or '---'}", styles["Normal"]))
 
         doc.build(content)
+
+        # 🧠 Enviar el PDF recién creado al bot para generar chunks RAG
+        from chatbot.src.bot import bot_global
+        try:
+            if os.path.exists(pdf_path):
+                print("🧠 Procesando chunks del PDF informativo para RAG:", pdf_path)
+                bot_global.procesar_pdf(pdf_path)
+            else:
+                print("⚠️ No se encontró el PDF para enviar al bot:", pdf_path)
+        except Exception as e:
+            print("💥 Error al procesar PDF informativo en el bot:", e)
+
 
         print(f"✅ PDF informativo actualizado: {pdf_path}")
 

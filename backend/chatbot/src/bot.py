@@ -87,7 +87,7 @@ API_KEY = "sk-or-v1-60760d9c4deb5c52256c0db4f2651c6285e67945837ea87f47fb269a67b4
 API_BASE = "https://openrouter.ai/api/v1"
 
 # Modelo de Chat (LLM)
-LLM_MODEL_NAME = "openrouter/microsoft/phi-3.5-mini-128k-instruct"
+LLM_MODEL_NAME = "deepseek/deepseek-v3.2-exp"
 # Modelo de Embeddings (Traductor)
 EMBEDDINGS_MODEL_NAME = "BAAI/bge-m3"
 # ==================================
@@ -570,11 +570,17 @@ Tu respuesta JSON:
         search_kwargs = {"k": 4}
         
         if context_id and es_seguimiento:
-            nombre_archivo = f"anexo_anuncio_{context_id}.pdf"
-            search_kwargs['filter'] = {"source": nombre_archivo}
-            print(f" <i> -> BÚSQUEDA FILTRADA (es seguimiento) por: {nombre_archivo}")
+            posibles_sources = [
+                f"anexo_anuncio_{context_id}.pdf",
+                f"info_anuncio_{context_id}.pdf",
+            ]
+
+            search_kwargs['filter'] = {"source": {"$in": posibles_sources}}
+
+            print(f" <i> -> BÚSQUEDA FILTRADA (es seguimiento) por: {posibles_sources}")
         else:
             print(f" <i> -> BÚSQUEDA GENERAL (es tema nuevo o no hay contexto)")
+
             
         try:
             documentos_relacionados = self.db.similarity_search_with_score(
@@ -618,7 +624,7 @@ Tu respuesta JSON:
             return respuesta
 
         # --- OBTENER FECHA Y CREAR PROMPT FINAL (SIN CAMBIOS) ---
-        hoy = datetime.now().strftime("%Y-m-%d") 
+        hoy = datetime.now().strftime("%Y-%m-%d") 
 
         PLANTILLA_PROMPT = """
         ¡Instrucción Absoluta! Eres PoliChat.
