@@ -162,3 +162,17 @@ EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 DEFAULT_FROM_EMAIL = "no-reply@tusitio.com"
 PRERENDER_URL = "https://service.prerender.io/"
 PRERENDER_TOKEN = "IS7CiIA2Ja8NzxKv8Fa2" 
+
+
+
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = "smtp.sendgrid.net"
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+
+EMAIL_HOST_USER = "apikey"  
+EMAIL_HOST_PASSWORD = "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"
+
+DEFAULT_FROM_EMAIL = "escomunidad.b084@gmail.com"
+
+

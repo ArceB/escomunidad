@@ -5,7 +5,7 @@ export default function AnuncioGuard() {
   const { role, isAuthenticated } = useAuthContext();
 
   // Si no está autenticado, redirige al login
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!isAuthenticated) return <Navigate to="/escomunidad-admin-panel" replace />;
 
   // Solo admin, superadmin o usuario pueden acceder
   if (role !== "admin" && role !== "superadmin" && role !== "usuario") {

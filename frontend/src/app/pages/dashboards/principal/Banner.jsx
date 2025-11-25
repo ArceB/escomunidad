@@ -22,18 +22,24 @@ export function Banner({ entidadId }) {
 
         anuncios = anuncios.filter(a => a.estado === "aprobado" && a.banner);
 
-        // 🔹 Los 5 más recientes
         const ultimosCinco = [...anuncios]
           .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
           .slice(0, 5);
 
-        // 🔹 Los 5 con fecha de fin más próxima (solo los que tienen fecha)
-        const conFechaFin = anuncios.filter(a => a.fecha_fin !== null);
+        const hoy = new Date();
+        hoy.setHours(0, 0, 0, 0);
+
+        const conFechaFin = anuncios.filter((a) => {
+          if (!a.fecha_fin) return false;
+          const fin = new Date(a.fecha_fin);
+          fin.setHours(0, 0, 0, 0);
+          return fin >= hoy;
+        });
+
         const proximosCinco = [...conFechaFin]
           .sort((a, b) => new Date(a.fecha_fin) - new Date(b.fecha_fin))
           .slice(0, 5);
 
-        // 🔹 Combinar ambos, sin duplicados
         const combinados = [
           ...ultimosCinco,
           ...proximosCinco.filter(
@@ -41,7 +47,6 @@ export function Banner({ entidadId }) {
           ),
         ];
 
-        // 🔹 Si hay menos de 10, completar con los que faltan
         if (combinados.length < 10) {
           const faltantes = anuncios.filter(
             (a) => !combinados.some((c) => c.id === a.id)
@@ -50,6 +55,7 @@ export function Banner({ entidadId }) {
         }
 
         setBanners(combinados);
+
       } catch (err) {
         console.error("Error cargando banners:", err);
       }

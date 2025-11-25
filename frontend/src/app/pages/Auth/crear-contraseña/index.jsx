@@ -60,7 +60,7 @@ const CrearContrasenaPage = () => {
       });
 
       toast.success("Contraseña asignada correctamente ✅");
-      navigate("/login");
+      navigate("/escomunidad-admin-panel");
     } catch (err) {
       console.error(err);
       toast.error("No se pudo asignar la contraseña ❌");

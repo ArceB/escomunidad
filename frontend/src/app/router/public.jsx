@@ -9,7 +9,7 @@ const publicRoutes = {
       }),
     },
     {
-      path: "login",
+      path: "escomunidad-admin-panel",
       lazy: async () => ({
         Component: (await import("app/pages/Auth")).default,
       }),

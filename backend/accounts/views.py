@@ -760,7 +760,7 @@ class UsuarioViewSet(viewsets.ModelViewSet):
                 f"Tu nombre de usuario es: {user.username}\n\n"
                 f"Saludos,\nEl equipo de soporte"
             ),
-            from_email="no-reply@tusitio.com",
+            from_email="escomunidad.b084@gmail.com",
             recipient_list=[user.email],
         )
 
@@ -837,7 +837,7 @@ class ResendTokenView(APIView):
                     f"Tu nombre de usuario es: {user.username}\n\n"
                     f"Saludos,\nEl equipo de soporte"
                 ),
-                from_email="no-reply@tusitio.com",
+                from_email="escomunidad.b084@gmail.com",
                 recipient_list=[user.email],
             )
 

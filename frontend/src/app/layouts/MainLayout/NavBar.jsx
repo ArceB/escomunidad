@@ -47,7 +47,7 @@ export default function NavBar({ showNotifications = false }) {
       sessionStorage.removeItem("authToken");
       sessionStorage.removeItem("refreshToken");
       logout(); // limpia contexto de usuario
-      navigate("/login", { replace: true });
+      navigate("/escomunidad-admin-panel", { replace: true });
     }
   };
 

@@ -66,7 +66,7 @@ export default function EditarAnuncioGuard() {
   }
 
   // Si no está autenticado → redirige al login
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!isAuthenticated) return <Navigate to="/escomunidad-admin-panel" replace />;
 
   // Si no tiene permiso → regresa al listado de entidades
   if (!allowed) return <Navigate to="/administracion/entidades" replace />;
