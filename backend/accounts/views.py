@@ -765,6 +765,7 @@ class UsuarioViewSet(viewsets.ModelViewSet):
         )
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+        
     
 class VerifyResetToken(APIView):
     def get(self, request):
@@ -844,3 +845,37 @@ class ResendTokenView(APIView):
             return Response({"success": "Token reenviado"}, status=200)
         except User.DoesNotExist:
             return Response({"error": "Usuario no encontrado o ya está activo"}, status=404)
+        
+class ForgotPasswordView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        email = request.data.get("email")
+
+        if not email:
+            return Response({"error": "Debe proporcionar un correo"}, status=400)
+
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response({"error": "No existe un usuario con ese correo"}, status=404)
+
+        # Crear nuevo token
+        reset_token = PasswordResetToken.objects.create(user=user)
+
+        FRONTEND_URL = "http://localhost:5173"
+        link = f"{FRONTEND_URL}/crear-contraseña/{reset_token.token}/"
+
+        send_mail(
+            subject="Recuperación de contraseña",
+            message=(
+                f"Hola {user.first_name},\n\n"
+                f"Has solicitado recuperar tu contraseña. "
+                f"Accede al siguiente enlace para asignar una nueva: {link}\n\n"
+                f"Si no solicitaste esto, ignora este mensaje."
+            ),
+            from_email="escomunidad.b084@gmail.com",
+            recipient_list=[user.email],
+        )
+
+        return Response({"success": True})

@@ -2,18 +2,23 @@
 import { EnvelopeIcon, LockClosedIcon } from "@heroicons/react/24/outline";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useForm } from "react-hook-form";
+import { useDisclosure } from "hooks";
+
 
 // Local Imports
 import Logo from "assets/appLogo.svg?react";
-import { Button, Card, Checkbox, Input, InputErrorMsg } from "components/ui";
+import { Button, Card, Input, InputErrorMsg } from "components/ui";
 import { useAuthContext } from "app/contexts/auth/context";
 import { schema } from "./schema";
 import { Page } from "components/shared/Page";
+import ForgotPasswordModal from "app/pages/components/modal/ForgotPasswordModal";
+
 
 // ----------------------------------------------------------------------
 
 export default function SignIn() {
   const { login, errorMessage } = useAuthContext();
+  const [isModalOpen, { open, close }] = useDisclosure(false);
 
   const {
     register,
@@ -85,13 +90,14 @@ export default function SignIn() {
               </div>
 
               <div className="mt-4 flex items-center justify-between space-x-2">
-                <Checkbox label="Recordarme" />
                 <a
-                  href="##"
-                  className="text-xs text-gray-400 transition-colors hover:text-gray-800 focus:text-gray-800 dark:text-dark-300 dark:hover:text-dark-100 dark:focus:text-dark-100"
+                  onClick={open}
+                  className="cursor-pointer text-xs text-gray-400 hover:text-gray-800 dark:hover:text-dark-100"
                 >
                   ¿Olvidaste tu contraseña?
                 </a>
+
+                <ForgotPasswordModal isOpen={isModalOpen} close={close} />
               </div>
 
               <Button type="submit" className="mt-5 w-full" color="primary">
