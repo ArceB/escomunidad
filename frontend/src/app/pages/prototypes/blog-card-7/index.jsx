@@ -59,27 +59,34 @@ export default function BlogCard7({ onCardClick }) {
         />
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 lg:gap-6 xl:grid-cols-4">
-          {filteredPosts.map((f) => {
-            const anuncio = f.item; // Asegúrate de usar f.item
-            return (
-              <div
-                key={anuncio.id}
-                onClick={() => onCardClick?.(anuncio)}
-                className="cursor-pointer"
-              >
-                <PostCard
-                  anuncio={anuncio} // Pasamos el objeto completo para el modal/editar
-                  cover={anuncio.banner || "/images/800x600.png"}
-                  category={anuncio.fecha_inicio}
-                  created_at={anuncio.fecha_fin}
-                  title={anuncio.titulo}
-                  description={anuncio.frase}
-                  likes={anuncio.likes || 0}
-                  query={query}
-                />
-              </div>
-            );
-          })}
+          {filteredPosts
+            .sort((a, b) => {
+              const dateA = new Date(a.item.created_at);
+              const dateB = new Date(b.item.created_at);
+              return dateB - dateA; // 🔥 Más reciente primero
+            })
+            .map((f) => {
+              const anuncio = f.item;
+              return (
+                <div
+                  key={anuncio.id}
+                  onClick={() => onCardClick?.(anuncio)}
+                  className="cursor-pointer"
+                >
+                  <PostCard
+                    anuncio={anuncio}
+                    cover={anuncio.banner || "/images/800x600.png"}
+                    category={anuncio.fecha_inicio}
+                    created_at={anuncio.fecha_fin}
+                    title={anuncio.titulo}
+                    description={anuncio.frase}
+                    likes={anuncio.likes || 0}
+                    query={query}
+                  />
+                </div>
+              );
+            })}
+
 
         </div>
 

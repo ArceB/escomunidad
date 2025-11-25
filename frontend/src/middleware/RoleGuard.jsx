@@ -5,7 +5,7 @@ export default function RoleGuard({ }) {
   const { role, isAuthenticated } = useAuthContext();
 
   // Si no está autenticado, redirige al login
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!isAuthenticated) return <Navigate to="/escomunidad-admin-panel" replace />;
 
   // Si tiene permisos, renderiza las rutas hijas
   return <Outlet />;

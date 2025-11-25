@@ -6,7 +6,7 @@ export default function AdminGuard() {
   const { role, isAuthenticated } = useAuthContext();
 
   // Si no está autenticado, redirige al login
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!isAuthenticated) return <Navigate to="/escomunidad-admin-panel" replace />;
 
   // Solo admin o superadmin pueden acceder
   if (role !== "admin" && role !== "superadmin") {
