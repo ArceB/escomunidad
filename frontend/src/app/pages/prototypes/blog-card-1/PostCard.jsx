@@ -1,7 +1,5 @@
-// src/app/pages/prototypes/blog-card-1/PostCard.jsx
-
-import PropTypes from "prop-types";
-import { Highlight } from "components/shared/Highlight";
+import PropTypes from "prop-types"; 
+import { Highlight } from "components/shared/Highlight"; 
 import { Card } from "components/ui";
 
 export function PostCard({
@@ -12,9 +10,11 @@ export function PostCard({
   author_name,
   created_at,
   query,
+  onCategoryClick, // ← nuevo callback
 }) {
   return (
     <Card className="flex flex-col lg:flex-row cursor-pointer hover:shadow-md transition">
+
       {/* Imagen */}
       <div className="relative h-48 w-full shrink-0 lg:h-auto lg:w-48">
         <img
@@ -26,8 +26,16 @@ export function PostCard({
 
       {/* Contenido */}
       <div className="flex w-full grow flex-col p-4 sm:px-5">
+
+        {/* CATEGORY — ahora clickeable */}
         <div className="flex items-center justify-between">
-          <span className="text-xs-plus text-info dark:text-info-lighter">
+          <span
+            onClick={(e) => {
+              e.stopPropagation();   // ❗ evita que active el click del card
+              onCategoryClick?.();   // ❗ ejecuta la redirección
+            }}
+            className="text-xs-plus text-info dark:text-info-lighter underline cursor-pointer"
+          >
             <Highlight query={query}>{category}</Highlight>
           </span>
         </div>
@@ -57,7 +65,8 @@ PostCard.propTypes = {
   category: PropTypes.string,
   title: PropTypes.string,
   description: PropTypes.string,
-  author_name: PropTypes.string, // fecha inicio
-  created_at: PropTypes.string, // fecha fin
+  author_name: PropTypes.string,
+  created_at: PropTypes.string,
   query: PropTypes.string,
+  onCategoryClick: PropTypes.func, // ← agregar proptype
 };

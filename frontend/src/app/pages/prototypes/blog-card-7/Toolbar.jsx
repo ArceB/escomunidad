@@ -40,21 +40,26 @@ export function Toolbar({ query, setQuery, mostrandoPendientes }) {
   const [entidad, setEntidad] = useState(null);
 
   useEffect(() => {
-    const fetchEntidad = async () => {
-      try {
-        const token = sessionStorage.getItem("authToken");
-        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+  const token = sessionStorage.getItem("authToken");
+  console.log("Token detectado:", token);
 
-        const res = await axios.get(`/entidades/${entidadId}/`, { headers });
+  if (!entidadId) {
+    setEntidad(null);
+    return;
+  }
 
-        setEntidad(res.data);
-      } catch (err) {
-        console.error("Error cargando entidad:", err);
-      }
-    };
+  const fetchEntidad = async () => {
+    try {
+      const res = await axios.get(`/entidades/${entidadId}/`);
+      setEntidad(res.data);
+    } catch (err) {
+      console.error("Error cargando entidad:", err);
+    }
+  };
 
-    if (entidadId) fetchEntidad();
-  }, [entidadId]);
+  fetchEntidad();  
+
+}, [entidadId]);
 
 
   useIsomorphicEffect(() => {

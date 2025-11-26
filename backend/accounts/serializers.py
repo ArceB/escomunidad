@@ -28,6 +28,7 @@ class UserSerializer(serializers.ModelSerializer):
 
 class EntidadSerializer(serializers.ModelSerializer):
     foto_portada = serializers.ImageField(use_url=True)
+    
 
     responsable_id = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.filter(role="responsable"),
@@ -105,6 +106,8 @@ class EntidadSerializer(serializers.ModelSerializer):
 # En accounts/serializers.py
 
 class AnuncioSerializer(serializers.ModelSerializer):
+    entidad_nombre = serializers.CharField(source="entidad.nombre", read_only=True)
+    entidad_id = serializers.IntegerField(source="entidad.id", read_only=True)
 
     comentarios_rechazo = serializers.SerializerMethodField()
     usuario_id = serializers.IntegerField(source="usuario.id", read_only=True)

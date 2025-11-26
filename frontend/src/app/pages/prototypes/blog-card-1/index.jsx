@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import axios from "utils/axios";
+import { useNavigate } from "react-router";
 
 // Local Imports
 import { Page } from "components/shared/Page";
@@ -12,6 +13,7 @@ import { useFuse } from "hooks";
 // ----------------------------------------------------------------------
 
 export default function BlogCard1({ onCardClick }) {
+  const navigate = useNavigate();
   const [posts, setPosts] = useState([]);
 
   const fetchAnuncios = async () => {
@@ -48,23 +50,33 @@ export default function BlogCard1({ onCardClick }) {
 
         {/* Tarjetas */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:gap-6">
-          {filteredPosts.map(({ item: anuncio, refIndex }) => (
-            <div
-              key={refIndex}
-              onClick={() => onCardClick?.(anuncio)}
-              className="cursor-pointer"
-            >
-              <PostCard
-                cover={anuncio.banner || "/images/800x600.png"}
-                category={anuncio.entidad?.nombre || "Entidad desconocida"}
-                title={anuncio.titulo}
-                description={anuncio.frase || "Sin descripción disponible."}
-                author_name={anuncio.fecha_inicio || "—"}
-                created_at={anuncio.fecha_fin || "—"}
-                query={query}
-              />
-            </div>
-          ))}
+          {filteredPosts
+            .sort((a, b) => {
+              const dateA = new Date(a.item.created_at || a.item.fecha_inicio);
+              const dateB = new Date(b.item.created_at || b.item.fecha_inicio);
+              return dateB - dateA; // 🔥 Más reciente primero
+            })
+            .map(({ item: anuncio, refIndex }) => (
+
+              <div
+                key={refIndex}
+                onClick={() => onCardClick?.(anuncio)}
+                className="cursor-pointer"
+              >
+                <PostCard
+                  cover={anuncio.banner || "/images/800x600.png"}
+                  category={anuncio.entidad_nombre || "Entidad desconocida"}
+                  title={anuncio.titulo}
+                  description={anuncio.frase || "Sin descripción disponible."}
+                  author_name={anuncio.fecha_inicio || "—"}
+                  created_at={anuncio.fecha_fin || "—"}
+                  query={query}
+                  onCategoryClick={() =>
+                    navigate(`/administracion/entidades/${anuncio.entidad_id}/anuncios`)
+                  }
+                />
+              </div>
+            ))}
         </div>
 
         {/* Mensaje si no hay resultados */}

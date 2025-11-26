@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router";
+//import { useParams } from "react-router";
 import axios from "utils/axios";
 
 // Local Imports
@@ -10,8 +10,8 @@ import { useFuse } from "hooks";
 
 // ----------------------------------------------------------------------
 
-export default function BlogCard7({ onCardClick }) {
-  const { id: entidadId } = useParams();
+export default function BlogCard7({ onCardClick, entidadId }) {
+  //const { id: entidadId } = useParams();
   const [posts, setPosts] = useState([]);
 
   const fetchAnuncios = async () => {

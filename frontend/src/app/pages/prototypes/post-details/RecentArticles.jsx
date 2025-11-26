@@ -60,15 +60,19 @@ export function RecentArticles({ entidadId }) {
             key={a.id}
             anuncio={a}
             cover={a.banner}
-            category={a.entidad?.nombre || "Entidad desconocida"}
+            category={a.entidad_nombre || "Entidad desconocida"}
             title={a.titulo}
             description={a.frase || "Sin frase destacada"}
             author_name={a.fecha_inicio || "—"}
             created_at={a.fecha_fin || "—"}
             onClick={() => navigate(`/administracion/anuncios/${a.id}`)}
+
+            // 🔥 Nuevo: click en categoría
+            onCategoryClick={() =>
+              navigate(`/administracion/entidades/${a.entidad_id}/anuncios`)
+            }
           />
         ))}
-
         {anuncios.length === 0 && (
           <p className="text-gray-500 text-sm mt-3">
             No hay anuncios aprobados recientes.
@@ -87,6 +91,7 @@ function PostCard({
   author_name,
   created_at,
   onClick,
+  onCategoryClick,
 }) {
   return (
     <Card
@@ -102,7 +107,13 @@ function PostCard({
       </div>
       <div className="flex w-full grow flex-col p-4 sm:px-5">
         <div className="-mt-2 flex items-center justify-between">
-          <span className="text-xs-plus text-info dark:text-info-lighter">
+          <span
+            onClick={(e) => {
+              e.stopPropagation(); // ❗ evita abrir el anuncio
+              onCategoryClick?.(); // ❗ llama a la navegación
+            }}
+            className="text-xs-plus text-info dark:text-info-lighter underline cursor-pointer"
+          >
             {category}
           </span>
         </div>
@@ -132,4 +143,5 @@ PostCard.propTypes = {
   author_name: PropTypes.string, // fecha inicio
   created_at: PropTypes.string, // fecha fin
   onClick: PropTypes.func,
+  onCategoryClick: PropTypes.func,
 };

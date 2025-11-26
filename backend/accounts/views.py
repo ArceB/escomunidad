@@ -117,7 +117,7 @@ class EntidadViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_permissions(self):
-        if self.action == 'list':  # Para 'list' (GET) permitimos acceso público
+        if self.action in ["list", "retrieve"]:  # 🔥 permitir GET sin login
             return [AllowAny()]
         
         user = self.request.user
