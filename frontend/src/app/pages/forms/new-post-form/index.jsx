@@ -7,6 +7,7 @@ import { DocumentPlusIcon } from "@heroicons/react/24/outline";
 import { toast } from "sonner";
 import axios from "utils/axios";
 import Quill from "quill";
+import { Building2 } from "lucide-react";
 
 // Local Imports
 import { schema } from "./schema";
@@ -84,6 +85,7 @@ const NewPostForm = ({ entidadId }) => {
   const { anuncioId } = useParams();
   const isEditing = !!anuncioId;
   const [anuncio, setAnuncio] = useState(null); // ✅ estado del anuncio
+  const [entidad, setEntidad] = useState(null);
   const [existingCover, setExistingCover] = useState(null);
   const [existingPdf, setExistingPdf] = useState(null);
   const navigate = useNavigate();
@@ -234,6 +236,22 @@ const NewPostForm = ({ entidadId }) => {
     }
   };
 
+  useEffect(() => {
+    if (!entidadId) return;
+
+    const fetchEntidad = async () => {
+      try {
+        const res = await axios.get(`/entidades/${entidadId}/`);
+        setEntidad(res.data);
+      } catch (err) {
+        console.error("Error cargando entidad:", err);
+      }
+    };
+
+    fetchEntidad();
+  }, [entidadId]);
+
+
   return (
     <Page title={anuncioId ? "Editar Anuncio" : "Nuevo Anuncio"}>
       {/* ✅ Drawer visible solo si el anuncio está rechazado */}
@@ -245,6 +263,35 @@ const NewPostForm = ({ entidadId }) => {
       )}
 
       <div className="transition-content px-(--margin-x) pb-6">
+        <div className="flex items-center space-x-2 mb-2">
+
+          {/* Icono de entidades */}
+          <button
+            className="flex items-center text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400"
+            onClick={() => navigate("/administracion/entidades")}
+          >
+            <Building2 className="h-5 w-5" />
+          </button>
+          <span className="text-gray-400">/</span>
+
+
+          {/* Nombre de entidad */}
+          <button
+            className="truncate text-base font-medium text-gray-700 dark:text-dark-50 hover:text-blue-600 dark:hover:text-blue-400"
+            onClick={() => navigate(`/administracion/entidades/${entidadId}/anuncios`)}
+          >
+            {entidad ? entidad.nombre : "Entidad"}
+          </button>
+
+          {/* Separador */}
+          <span className="text-gray-400">/</span>
+
+          {/* Nuevo o Editar */}
+          <span className="truncate text-base font-medium text-gray-700 dark:text-dark-50">
+            {anuncioId ? "Editar anuncio" : "Nuevo anuncio"}
+          </span>
+        </div>
+
         <div className="flex flex-col items-center justify-between space-y-4 py-5 sm:flex-row sm:space-y-0 lg:py-6">
           <div className="flex items-center gap-1">
             <DocumentPlusIcon className="size-6" />

@@ -1,10 +1,64 @@
 import PropTypes from "prop-types";
+import { useNavigate } from "react-router";
+import { useEffect, useState } from "react";
 
 import { DocumentTextIcon } from "@heroicons/react/24/outline";
+import { Building2 } from "lucide-react";
+import axios from "utils/axios";
 
 export function PostContent({ anuncio }) {
+  const navigate = useNavigate();
+  const [entidad, setEntidad] = useState(null);
+
+  // 🔥 Cargar entidad usando anuncio.entidad_id
+  useEffect(() => {
+    if (!anuncio?.entidad_id) return;
+
+    const fetchEntidad = async () => {
+      try {
+        const res = await axios.get(`/entidades/${anuncio.entidad_id}/`);
+        setEntidad(res.data);
+      } catch (err) {
+        console.error("Error cargando entidad:", err);
+      }
+    };
+
+    fetchEntidad();
+  }, [anuncio?.entidad_id]);
+
   return (
     <div className="mt-6 text-base text-gray-600 dark:text-dark-200">
+
+      {/* 🔵 Breadcrumb */}
+      <div className="flex items-center space-x-2 mb-4">
+
+        {/* Ícono tipo "Entidades" */}
+        <button
+          className="flex items-center text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400"
+          onClick={() => navigate("/administracion/entidades")}
+        >
+          <Building2 className="h-5 w-5" />
+        </button>
+        <span className="text-gray-400">/</span>
+
+        {/* Nombre de la entidad -> CLICK para ir a anuncios de esa entidad */}
+        <button
+          className="truncate text-lg font-medium text-gray-700 dark:text-dark-50 hover:text-blue-600 dark:hover:text-blue-400"
+          onClick={() => navigate(`/administracion/entidades/${entidad?.id}/anuncios`)}
+        >
+          {entidad ? entidad.nombre : "Entidad"}
+        </button>
+
+        {/* / separador */}
+        <span className="text-gray-400">/</span>
+
+        {/* Nombre del anuncio */}
+        <span className="truncate text-lg font-medium text-gray-700 dark:text-dark-50">
+          {anuncio.titulo}
+        </span>
+      </div>
+
+
       <h1 className="text-3xl font-medium text-gray-900 dark:text-dark-50 lg:text-4xl">
         {anuncio.titulo}
       </h1>

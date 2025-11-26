@@ -102,6 +102,8 @@ export function Toolbar({ query, setQuery, mostrandoPendientes }) {
             >
               <Building2 className="h-5 w-5" />
             </button>
+          <span className="text-gray-400">/</span>
+
 
             {/* Nombre de entidad */}
             <span className="truncate text-xl font-medium text-gray-700 dark:text-dark-50 lg:text-2xl">
