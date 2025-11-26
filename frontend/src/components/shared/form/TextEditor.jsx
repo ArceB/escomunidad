@@ -24,8 +24,40 @@ import {
 // ----------------------------------------------------------------------
 
 const styles = `@layer vendor {
-  ${quillCSS} 
+  ${quillCSS}
+
+  .ql-editor {
+    direction: ltr !important;
+    text-align: left !important;
+    unicode-bidi: embed !important;
+  }
+  
+  .ql-editor p,
+  .ql-editor ol,
+  .ql-editor ul,
+  .ql-editor pre,
+  .ql-editor blockquote,
+  .ql-editor h1,
+  .ql-editor h2,
+  .ql-editor h3,
+  .ql-editor h4,
+  .ql-editor h5,
+  .ql-editor h6 {
+    direction: ltr !important;
+    text-align: left !important;
+    unicode-bidi: normal !important;
+  }
+  
+  .ql-editor * {
+    direction: ltr !important;
+    unicode-bidi: normal !important;
+  }
+  
+  .ql-container {
+    direction: ltr !important;
+  }
 }`;
+
 
 const sheet = makeStyleTag();
 injectStyles(sheet, styles);
@@ -88,6 +120,12 @@ const TextEditor = forwardRef(
 
       quill.enable(!readOnly);
 
+      // 🔥 FORZAR DIRECCIÓN LTR INMEDIATAMENTE
+      const editor = quill.root;
+      editor.setAttribute('dir', 'ltr');
+      editor.style.direction = 'ltr';
+      editor.style.textAlign = 'left';
+
       quill.setContents(_value);
 
       quillRef.current = quill;
@@ -126,12 +164,23 @@ const TextEditor = forwardRef(
     useEffect(() => {
       if (!quillRef.current) return;
 
-      const safeValue =
-        value instanceof Delta
-          ? value
-          : new Delta(value?.ops || []);
+      const currentContent = quillRef.current.getContents();
+      const newContent = value instanceof Delta ? value : new Delta(value?.ops || []);
 
-      quillRef.current.setContents(safeValue);
+      // 🔥 SOLUCIÓN: Comparamos si el contenido es diferente antes de actualizar.
+      // Usamos JSON.stringify como una forma rápida y efectiva de comparar Deltas.
+      // Si el contenido es idéntico (porque lo acabas de escribir tú), NO ejecutamos setContents.
+      if (JSON.stringify(currentContent) !== JSON.stringify(newContent)) {
+        // Guardamos la selección actual para intentar restaurarla (opcional pero recomendado)
+        const selection = quillRef.current.getSelection();
+
+        quillRef.current.setContents(newContent);
+
+        // Si el editor tiene el foco, intentamos restaurar el cursor (aunque la comparación arriba suele bastar)
+        if (selection && quillRef.current.hasFocus()) {
+          quillRef.current.setSelection(selection);
+        }
+      }
     }, [value]);
 
     return (

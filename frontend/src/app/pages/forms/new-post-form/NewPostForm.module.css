@@ -1,0 +1,11 @@
+/* NewPostForm.module.css */
+.editorWrapper :global(.ql-editor),
+.editorWrapper :global(.ql-editor *) {
+  direction: ltr !important;
+  text-align: left !important;
+  unicode-bidi: normal !important;
+}
+
+.editorWrapper :global(.ql-container) {
+  direction: ltr !important;
+}

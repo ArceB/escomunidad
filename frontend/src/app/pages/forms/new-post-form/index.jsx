@@ -17,6 +17,8 @@ import { CoverImageUpload } from "./components/CoverImageUpload";
 import { PdfUpload } from "./components/PdfUpload";
 import { DatePicker } from "components/shared/form/Datepicker";
 import RechazoDrawer from "app/pages/components/drawer/RechazoDrawer";
+//import styles from './NewPostForm.module.css';
+import "./NewPostForm.css";
 
 // ----------------------------------------------------------------------
 
@@ -38,7 +40,6 @@ const editorModules = {
     [{ list: "ordered" }, { list: "bullet" }],
     [{ script: "sub" }, { script: "super" }],
     [{ indent: "-1" }, { indent: "+1" }],
-    [{ direction: "rtl" }],
     [{ size: ["small", false, "large", "huge"] }],
     [{ header: [1, 2, 3, 4, 5, 6, false] }],
     [{ color: [] }, { background: [] }],
@@ -54,6 +55,23 @@ const editorModules = {
             op.attributes = op.attributes || {};
             op.attributes.link = node.getAttribute("href");
           }
+        });
+        return delta;
+      }],
+      // 🔥 NUEVO: Interceptar y eliminar formatos RTL de cualquier contenido pegado
+      [Node.ELEMENT_NODE, (node, delta) => {
+        delta.ops = delta.ops.map(op => {
+          if (op.attributes) {
+            const { align, ...rest } = op.attributes;
+
+            if (align === "right") {
+              return { ...op, attributes: Object.keys(rest).length > 0 ? rest : undefined };
+            }
+
+            return { ...op, attributes: rest };
+
+          }
+          return op;
         });
         return delta;
       }],
@@ -85,49 +103,81 @@ const NewPostForm = ({ entidadId }) => {
   // 🔹 Cargar anuncio si estamos en modo edición
   useEffect(() => {
     if (!anuncioId) {
-        reset(initialState);
-        setAnuncio(null);
-        setExistingCover(null);
-        setExistingPdf(null);
-        return;
+      reset(initialState);
+      setAnuncio(null);
+      setExistingCover(null);
+      setExistingPdf(null);
+      return;
     }
 
     const fetchAnuncio = async () => {
-        try {
-            const res = await axios.get(`/anuncios/${anuncioId}/`);
-            const anuncioData = res.data;
+      try {
+        const res = await axios.get(`/anuncios/${anuncioId}/`);
+        const anuncioData = res.data;
 
-            setAnuncio(anuncioData);
-            setExistingCover(anuncioData.banner || null);
-            setExistingPdf(anuncioData.archivo_pdf || null);
+        setAnuncio(anuncioData);
+        setExistingCover(anuncioData.banner || null);
+        setExistingPdf(anuncioData.archivo_pdf || null);
 
-            // Convertir HTML a Delta correctamente
-            let descripcionDelta = new Delta();
-            if (anuncioData.descripcion) {
-                const tempQuill = new Quill(document.createElement('div'));
-                descripcionDelta = tempQuill.clipboard.convert({ 
-                    html: anuncioData.descripcion 
-                });
-            }
+        // Convertir HTML a Delta correctamente SIN heredar RTL
+        let descripcionDelta = new Delta();
+        if (anuncioData.descripcion) {
+          // 🔥 Crear un contenedor aislado con dirección LTR forzada
+          const tempContainer = document.createElement('div');
+          tempContainer.style.direction = 'ltr';
+          tempContainer.style.textAlign = 'left';
+          tempContainer.setAttribute('dir', 'ltr');
 
-            reset({
-                titulo: anuncioData.titulo || "",
-                frase: anuncioData.frase || "",
-                descripcion: descripcionDelta,  // ✅ Ahora es un Delta convertido correctamente
-                banner: null,
-                archivo_pdf: null,
-                fecha_inicio: anuncioData.fecha_inicio || "",
-                fecha_fin: anuncioData.fecha_fin || "",
+          const tempQuill = new Quill(tempContainer, {
+            modules: {}
+          });
+
+          // Forzar dirección LTR en el editor temporal
+          tempQuill.root.style.direction = 'ltr';
+          tempQuill.root.style.textAlign = 'left';
+          tempQuill.root.setAttribute('dir', 'ltr');
+
+          descripcionDelta = tempQuill.clipboard.convert({
+            html: anuncioData.descripcion
+          });
+
+          if (descripcionDelta.ops) {
+            descripcionDelta.ops = descripcionDelta.ops.map(op => {
+              if (op.attributes) {
+                const { ...rest } = op.attributes;
+
+                if (Object.keys(rest).length > 0) {
+                  return { ...op, attributes: rest };
+                } else {
+                  const newOp = { ...op };
+                  delete newOp.attributes;
+                  return newOp;
+                }
+              }
+
+              return op;
             });
-
-        } catch (err) {
-            console.error("Error al cargar el anuncio:", err);
-            toast.error("Error al cargar el anuncio ❌");
+          }
         }
+
+        reset({
+          titulo: anuncioData.titulo || "",
+          frase: anuncioData.frase || "",
+          descripcion: descripcionDelta,
+          banner: null,
+          archivo_pdf: null,
+          fecha_inicio: anuncioData.fecha_inicio || "",
+          fecha_fin: anuncioData.fecha_fin || "",
+        });
+
+      } catch (err) {
+        console.error("Error al cargar el anuncio:", err);
+        toast.error("Error al cargar el anuncio ❌");
+      }
     };
 
     fetchAnuncio();
-}, [anuncioId, reset]);
+  }, [anuncioId, reset]);
 
   const onSubmit = async (data) => {
     try {
@@ -238,21 +288,29 @@ const NewPostForm = ({ entidadId }) => {
 
                   <div className="flex flex-col">
                     <span>Descripción</span>
-                    <Controller
-                      control={control}
-                      name="descripcion"
-                      render={({ field: { value, onChange, ...rest } }) => (
-                        <TextEditor
-                          value={value}
-                          onChange={(val) => onChange(val)}
-                          placeholder="Ingrese el contenido del anuncio..."
-                          className="mt-1.5 [&_.ql-editor]:max-h-80 [&_.ql-editor]:min-h-[12rem]"
-                          modules={editorModules}
-                          error={errors?.descripcion?.message}
-                          {...rest}
-                        />
-                      )}
-                    />
+                    <div className="quill-editor-wrapper">
+                      <Controller
+                        control={control}
+                        name="descripcion"
+                        render={({ field: { value, onChange, ...rest } }) => (
+                          <TextEditor
+                            value={value}
+                            onChange={(val) => onChange(val)}
+                            placeholder="Ingrese el contenido del anuncio..."
+                            className="mt-1.5 [&_.ql-editor]:max-h-80 [&_.ql-editor]:min-h-[12rem]"
+                            modules={editorModules}
+                            error={errors?.descripcion?.message}
+                            onReady={(quill) => {
+                              const editorElement = quill.root;
+                              editorElement.setAttribute('dir', 'ltr');
+                              editorElement.style.direction = 'ltr';
+                              editorElement.style.textAlign = 'left';
+                            }}
+                            {...rest}
+                          />
+                        )}
+                      />
+                    </div>
                   </div>
 
                   <Controller

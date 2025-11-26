@@ -1,0 +1,29 @@
+/* NewPostForm.css */
+.quill-editor-wrapper {
+  direction: ltr !important;
+}
+
+.quill-editor-wrapper .ql-container,
+.quill-editor-wrapper .ql-toolbar,
+.quill-editor-wrapper .ql-editor,
+.quill-editor-wrapper .ql-editor p,
+.quill-editor-wrapper .ql-editor span,
+.quill-editor-wrapper .ql-editor strong,
+.quill-editor-wrapper .ql-editor em,
+.quill-editor-wrapper .ql-editor u,
+.quill-editor-wrapper .ql-editor ol,
+.quill-editor-wrapper .ql-editor ul,
+.quill-editor-wrapper .ql-editor li,
+.quill-editor-wrapper .ql-editor h1,
+.quill-editor-wrapper .ql-editor h2,
+.quill-editor-wrapper .ql-editor h3,
+.quill-editor-wrapper .ql-editor h4,
+.quill-editor-wrapper .ql-editor h5,
+.quill-editor-wrapper .ql-editor h6,
+.quill-editor-wrapper .ql-editor blockquote,
+.quill-editor-wrapper .ql-editor pre,
+.quill-editor-wrapper .ql-editor * {
+  direction: ltr !important;
+  text-align: left !important;
+  unicode-bidi: normal !important;
+}
