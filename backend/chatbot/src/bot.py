@@ -20,18 +20,15 @@ try:
     from langdetect import detect, LangDetectException
     from langchain_chroma import Chroma
     from langchain_core.prompts import ChatPromptTemplate
-    from langchain_community.embeddings import HuggingFaceEmbeddings
-    from langchain_community.chat_models import ChatOpenAI
-
-
-
-
+    from langchain_huggingface import HuggingFaceEmbeddings
+    from langchain_openai import ChatOpenAI
     from langchain_core.chat_history import InMemoryChatMessageHistory
     from langchain_core.messages import HumanMessage, AIMessage
-except ImportError:
+except ImportError as e:
     print("="*50)
-    print("ERROR: Faltan dependencias. Por favor, ejecuta:")
-    print("pip install openai langdetect langchain-chroma langchain-community")
+    print("ERROR: No se pudieron importar dependencias:", e)
+    print("Instala las dependencias necesarias con:")
+    print("pip install openai langdetect langchain-chroma langchain-huggingface langchain-openai")
     print("="*50)
     exit(1)
 
