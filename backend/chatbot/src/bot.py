@@ -24,14 +24,12 @@ try:
     from langchain_openai import ChatOpenAI
     from langchain_core.chat_history import InMemoryChatMessageHistory
     from langchain_core.messages import HumanMessage, AIMessage
-except ImportError as e:
+except ImportError:
     print("="*50)
-    print("ERROR: No se pudieron importar dependencias:", e)
-    print("Instala las dependencias necesarias con:")
+    print("ERROR: Faltan dependencias. Por favor, ejecuta:")
     print("pip install openai langdetect langchain-chroma langchain-huggingface langchain-openai")
     print("="*50)
     exit(1)
-
 
 # --- Dependencias de Django (Opcional, solo para MEDIA_ROOT) ---
 try:
