@@ -1,6 +1,8 @@
 import GhostGuard from "middleware/GhostGuard";
 
 const ghostRoutes = {
+
+  
   id: "ghost",
   Component: GhostGuard,
   children: [
