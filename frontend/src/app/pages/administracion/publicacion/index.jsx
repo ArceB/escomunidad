@@ -28,7 +28,7 @@ export default function PublicacionPage() {
         const token = sessionStorage.getItem("authToken");
         const headers = token ? { Authorization: `Bearer ${token}` } : {};
         const res = await axios.get(
-          `http://localhost:8000/api/anuncios/${anuncioId}/`,
+          `http://https://backend-ec72.onrender.com/api/anuncios/${anuncioId}/`,
           { headers }
         );
         setAnuncio(res.data);

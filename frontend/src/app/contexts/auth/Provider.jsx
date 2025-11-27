@@ -114,7 +114,7 @@ export function AuthProvider({ children }) {
     dispatch({ type: "LOGIN_REQUEST" });
 
     try {
-      const resp = await axios.post("http://localhost:8000/api/token/", {
+      const resp = await axios.post("http://https://backend-ec72.onrender.com/api/token/", {
         username,
         password,
       });
