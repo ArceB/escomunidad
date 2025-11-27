@@ -19,7 +19,7 @@ const ghostRoutes = {
     {
       path: "crear-contraseña/:token",
       lazy: async () => ({
-        Component: (await import("app/pages/auth/crear-contraseña")).default,
+        Component: (await import("app/pages/Auth/crear-contrasena")).default,
       }),
     },
   ],
