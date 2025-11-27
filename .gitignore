@@ -1,7 +1,7 @@
 
 # Ignorar archivos del chatbot (ChromaDB)
-backend/chatbot/chroma/
-backend/chatbot/chroma_db/
+#backend/chatbot/chroma/
+#backend/chatbot/chroma_db/
 
 # Ignorar los archivos .pyc
 __pycache__/
