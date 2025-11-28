@@ -37,7 +37,7 @@ export default function UsersDatatable() {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const response = await axios.get("http://https://backend-ec72.onrender.com/api/users/");
+        const response = await axios.get("https://backend-ec72.onrender.com/api/users/");
         console.log("Usuarios desde API:", response.data);
 
         // Filter out superadmins
