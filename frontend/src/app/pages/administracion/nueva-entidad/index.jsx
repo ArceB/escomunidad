@@ -72,10 +72,14 @@ export default function NuevaEntidadPage() {
                     formData.append("usuarios_ids", id);
                 });
             }
+            
+            // Solo adjuntamos la imagen si existe una NUEVA.
+            // Si es null, no la adjuntamos, y PATCH respetará la anterior.
             if (data.cover) {
                 formData.append("foto_portada", data.cover);
             }
 
+<<<<<<< Updated upstream
             const res = await axios.post("/entidades/", formData, {
                 headers: { "Content-Type": "multipart/form-data" },
             });
@@ -83,9 +87,35 @@ export default function NuevaEntidadPage() {
             toast.success("Entidad creada con éxito 🚀");
             console.log("Respuesta:", res.data);
             reset();
+=======
+            if (isSuperAdmin && data.administrador_id) {
+                formData.append("administrador_input", data.administrador_id);
+            } else if (!isSuperAdmin) {
+                const currentAdminId = user?.id; 
+                formData.append("administrador_input", currentAdminId);
+            }
+
+            if (entidadId) {
+
+                await axios.patch(`/entidades/${entidadId}/`, formData, {
+                    headers: { "Content-Type": "multipart/form-data" },
+                });
+
+                toast.success("Entidad actualizada con éxito 🚀");
+            } else {
+                // Crear sigue siendo POST
+                await axios.post("/entidades/", formData, {
+                    headers: { "Content-Type": "multipart/form-data" },
+                });
+
+                toast.success("Entidad creada con éxito 🚀");
+            }
+
+            navigate("/administracion/entidades");
+>>>>>>> Stashed changes
         } catch (err) {
-            console.error("Error al crear entidad:", err.response || err);
-            toast.error("Error al crear entidad ❌");
+            console.error("Error al guardar entidad:", err.response || err);
+            toast.error("Error al guardar la entidad ❌");
         }
     };
 
