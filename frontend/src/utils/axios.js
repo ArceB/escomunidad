@@ -53,7 +53,7 @@ axiosInstance.interceptors.response.use(
       } catch (err) {
         console.error("❌ Error al refrescar el token:", err);
         sessionStorage.clear();
-        window.location.href = "/login"; // redirige al login
+        window.location.href = "/escomunidad-admin-panel"; // redirige al login
       }
     }
 

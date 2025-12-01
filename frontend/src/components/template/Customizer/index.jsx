@@ -17,7 +17,7 @@ import { useDisclosure } from "hooks";
 import SettingIcon from "assets/dualicons/setting.svg?react";
 import { useThemeContext } from "app/contexts/theme/context";
 import { colors } from "constants/colors.constant";
-import { range } from "utils/range";
+//import { range } from "utils/range";
 import { Button, ScrollShadow } from "components/ui";
 import { Listbox } from "components/shared/form/Listbox";
 
@@ -30,11 +30,11 @@ const primaryColors = ["indigo", "blue", "green", "amber", "purple", "rose"];
 const cardSkins = [
   {
     value: "shadow-sm",
-    label: "Shadow",
+    label: "Sombra",
   },
   {
     value: "bordered",
-    label: "Bordered",
+    label: "Borde",
   },
 ];
 
@@ -94,7 +94,7 @@ function CustomizerContent({ close }) {
       <div className="flex items-center justify-between px-3 py-2">
         <div className="flex shrink-0 items-center gap-1.5">
           <SettingIcon className="size-5" />
-          <span>Theme Customizer</span>
+          <span>Personalizador de temas</span>
         </div>
         <Button
           onClick={close}
@@ -115,7 +115,7 @@ function CustomizerContent({ close }) {
           className="mt-1"
         >
           <Label className="font-medium text-gray-800 dark:text-dark-100">
-            Theme Mode
+            Modo de tema
           </Label>
           <div className="mt-2.5 grid grid-cols-3 gap-2.5">
             <Radio value="system" className="cursor-pointer outline-hidden">
@@ -256,7 +256,7 @@ function CustomizerContent({ close }) {
             </Radio>
           </div>
         </RadioGroup>
-
+        {/**
         <RadioGroup
           value={theme.themeLayout}
           onChange={theme.setThemeLayout}
@@ -351,6 +351,7 @@ function CustomizerContent({ close }) {
             </Radio>
           </div>
         </RadioGroup>
+         */}
 
         <RadioGroup
           value={theme.primaryColorScheme.name}
@@ -358,7 +359,7 @@ function CustomizerContent({ close }) {
           className="mt-5"
         >
           <Label className="font-medium text-gray-800 dark:text-dark-100">
-            Primary Colors
+            Colores primarios
           </Label>
           <div className="mt-2 flex w-fit flex-wrap gap-3">
             {primaryColors.map((color) => (
@@ -391,7 +392,7 @@ function CustomizerContent({ close }) {
         </RadioGroup>
 
         <Listbox
-          label="Card Skin:"
+          label="Estilo de tarjeta:"
           classNames={{
             root: "mt-5",
           }}
@@ -406,7 +407,7 @@ function CustomizerContent({ close }) {
           className="mt-5"
         >
           <Label className="font-medium text-gray-800 dark:text-dark-100">
-            Light Colors
+            Colores claros
           </Label>
           <div className="mt-2.5 grid grid-cols-3 gap-2.5">
             {lightColors.map((color) => (
@@ -439,7 +440,7 @@ function CustomizerContent({ close }) {
           className="mt-5"
         >
           <Label className="font-medium text-gray-800 dark:text-dark-100">
-            Dark Colors
+            Colores oscuros
           </Label>
           <div className="mt-2.5 grid grid-cols-3 gap-2.5">
             {darkColors.map((color) => (
