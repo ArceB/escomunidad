@@ -83,7 +83,7 @@ except ImportError:
 # ==================================
 # VARIABLES GLOBALES DE CONFIGURACIÓN
 # ==================================
-API_KEY = "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"
+API_KEY = "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"
 API_BASE = "https://openrouter.ai/api/v1"
 
 # Modelo de Chat (LLM)
@@ -632,8 +632,7 @@ Tu respuesta JSON:
 
         **REGLA MÁS IMPORTANTE:** La fecha de hoy es **{fecha_actual}**.
 
-        **Fechas detectadas en el contexto y su clasificación:**  
-        {tabla_fechas}
+        **Fechas detectadas en el contexto y su clasificación:** {tabla_fechas}
 
         * Si una fecha está clasificada como PASADO, debes expresarla en pasado.
         * Si está clasificada como FUTURO, debes expresarla en futuro.
@@ -644,6 +643,11 @@ Tu respuesta JSON:
         * Si la información NO está en el contexto, responde exactamente:
         "Lo siento, no pude encontrar información sobre eso en mis documentos."
 
+        **Regla de Estilo (NUEVA):**
+        * RESPONDE DIRECTAMENTE. 
+        * NO uses frases introductorias como "Según la información disponible", "Basado en el contexto", "La información indica que", etc.
+        * Ve directo al grano con la respuesta.
+
         ---
         **Contexto disponible:**
         {context}
@@ -651,7 +655,7 @@ Tu respuesta JSON:
         **Pregunta actual:**
         {question}
 
-        **Respuesta (con tiempos verbales correctos):**
+        **Respuesta directa (con tiempos verbales correctos):**
         """
 
         
