@@ -510,11 +510,16 @@ class ChatBot:
                 return "Lo siento, solo puedo responder en español."
 
         # Prueba 4: Un solo término ambiguo (SIN CAMBIOS)
+        # Prueba 4: Un solo término -> Auto-completado (MODIFICADO)
         if (num_palabras_limpias == 1 and 
             pregunta_norm not in PALABRAS_SEGURAS_DE_UNA_SOLA_PALABRA and
-            not contiene_palabra_de(SALUDOS_KEYWORDS, pregunta_norm)): # Excepción extra
-            print(" <i> -> [ask] ⚠️ Pregunta demasiado ambigua (1 palabra). Pidiendo contexto.")
-            return "Tu consulta es muy breve. ¿Podrías proporcionarme más contexto o detalles?"
+            not contiene_palabra_de(SALUDOS_KEYWORDS, pregunta_norm)):
+            print(f" <i> -> [ask] Palabra única detectada ('{pregunta}'). Expandiendo contexto...")
+            # Concatenamos la frase
+            pregunta = f"Dame información sobre {pregunta}"
+            # Actualizamos la variable normalizada y para detector por si se usan después
+            pregunta_norm = normalizar_texto(pregunta)
+            pregunta_para_detector = limpiar_para_langdetect(pregunta)
         # --- FIN DE VALIDACIONES ---
         
         print(f" <i> -> Contexto de Anuncio ID: {context_id}")
