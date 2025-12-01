@@ -43,7 +43,7 @@ export function PostCard({ anuncio, cover, category, created_at, title, descript
         </div>
         <div className="flex line-clamp-2 pt-2">
           <a
-            className="text-base font-medium text-gray-700 hover:text-primary-600 focus:text-primary-600 dark:text-dark-100 dark:hover:text-primary-400 dark:focus:text-primary-400"
+            className="text-base font-bold text-gray-700 hover:text-primary-600 focus:text-primary-600 dark:text-dark-100 dark:hover:text-primary-400 dark:focus:text-primary-400"
           >
             <Highlight query={String(query || "")}>{String(title || "")}</Highlight>
           </a>

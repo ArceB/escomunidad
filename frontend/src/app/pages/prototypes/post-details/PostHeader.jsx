@@ -11,7 +11,7 @@ import {
 import { useState } from "react";
 import axios from "utils/axios";
 //import { EllipsisHorizontalIcon } from "@heroicons/react/20/solid";
-import { BookmarkIcon } from "@heroicons/react/24/outline";
+//import { BookmarkIcon } from "@heroicons/react/24/outline";
 //import clsx from "clsx";
 import { Fragment } from "react";
 import { FaFacebook, FaLinkedin, FaTwitter, FaWhatsapp } from "react-icons/fa";
@@ -123,6 +123,7 @@ export function PostHeader({ anuncio, onStatusChange, estado }) {
           <div className="flex max-sm:hidden">
             {!isAuthenticated && (
               <div className="flex max-sm:hidden">
+                {/**
                 <Button
                   component="a"
                   href="#"
@@ -132,6 +133,7 @@ export function PostHeader({ anuncio, onStatusChange, estado }) {
                 >
                   <BookmarkIcon className="size-5" />
                 </Button>
+                 */}
                 <Button
                   component="a"
                   href="#"
@@ -212,6 +214,7 @@ export function PostHeader({ anuncio, onStatusChange, estado }) {
       {!isAuthenticated && (
         <div className="mt-6 flex items-center gap-3 sm:hidden">
           <div className="flex flex-wrap">
+            {/* 
             <Button
               component="a"
               href="#"
@@ -221,6 +224,7 @@ export function PostHeader({ anuncio, onStatusChange, estado }) {
             >
               <BookmarkIcon className="size-5" />
             </Button>
+            */}
             <Button
               component="a"
               href="#"
