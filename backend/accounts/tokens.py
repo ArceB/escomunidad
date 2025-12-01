@@ -6,6 +6,7 @@ class RoleTokenObtainPairSerializer(TokenObtainPairSerializer):
         token = super().get_token(user)
         # Agregar el rol dentro del token
         token['role'] = user.role
+        token["first_name"] = user.first_name 
         return token
 
     def validate(self, attrs):

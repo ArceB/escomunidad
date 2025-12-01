@@ -226,12 +226,15 @@ export default function NuevaEntidadPage() {
         }
     };
 
+    //const { isAuthenticated } = useAuthContext();
+
     return (
         <Page title={entidadId ? "Editar Entidad" : "Nueva Entidad"}>
             <NavBar showNotifications />
 
             <main className="pt-20 px-6">
                 <div className="transition-content px-(--margin-x) pb-6">
+                    
                     <div className="flex items-center space-x-2 mb-2">
 
                         {/* Icono de entidades */}
@@ -249,6 +252,8 @@ export default function NuevaEntidadPage() {
                             {entidadId ? "Editar Entidad" : "Nueva Entidad"}
                         </span>
                     </div>
+
+                    
                     <div className="flex flex-col items-center justify-between space-y-4 py-5 sm:flex-row sm:space-y-0 lg:py-6">
                         <div className="flex items-center gap-1">
                             <DocumentPlusIcon className="size-6" />

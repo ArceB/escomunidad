@@ -6,9 +6,14 @@ import { DocumentTextIcon } from "@heroicons/react/24/outline";
 import { Building2 } from "lucide-react";
 import axios from "utils/axios";
 
+import Bienvenido from "app/pages/administracion/bienvenido";
+import { useAuthContext } from "app/contexts/auth/context";
+
+
 export function PostContent({ anuncio }) {
   const navigate = useNavigate();
   const [entidad, setEntidad] = useState(null);
+  const { isAuthenticated } = useAuthContext();
 
   // 🔥 Cargar entidad usando anuncio.entidad_id
   useEffect(() => {
@@ -28,6 +33,9 @@ export function PostContent({ anuncio }) {
 
   return (
     <div className="mt-6 text-base text-gray-600 dark:text-dark-200">
+      <div className="flex items-center space-x-2 mb-10">
+        {isAuthenticated && <Bienvenido />}
+      </div>
 
       {/* 🔵 Breadcrumb */}
       <div className="flex items-center space-x-2 mb-4">
