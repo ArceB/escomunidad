@@ -12,12 +12,11 @@ import {
 } from "@headlessui/react";
 import {
   ChevronDownIcon,
-  Cog8ToothIcon,
   MagnifyingGlassIcon,
   PlusIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
-import { RiFilter3Line } from "react-icons/ri";
+//import { RiFilter3Line } from "react-icons/ri";
 import clsx from "clsx";
 
 // Local Imports
@@ -92,20 +91,6 @@ export function Toolbar({ query, setQuery }) {
               <MagnifyingGlassIcon className="size-5" />
             </Button>
 
-            <Button
-              className="size-9 shrink-0 rounded-full"
-              isIcon
-              variant="flat"
-            >
-              <RiFilter3Line className="size-5" />
-            </Button>
-            <Button
-              className="size-9 shrink-0 rounded-full"
-              isIcon
-              variant="flat"
-            >
-              <Cog8ToothIcon className="size-5" />
-            </Button>
           </div>
         </>
       )}
