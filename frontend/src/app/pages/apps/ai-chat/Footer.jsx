@@ -100,7 +100,7 @@ export function Footer() {
       {showCaptcha && !captchaValid && (
         <div className="mb-3 flex justify-center">
           <ReCAPTCHA
-            sitekey="6LdOUREsAAAAALJ5YsWbuBKHW0-yCnw4tBxS2068"
+            sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY}
             onChange={handleCaptcha}
             ref={recaptchaRef}
           />

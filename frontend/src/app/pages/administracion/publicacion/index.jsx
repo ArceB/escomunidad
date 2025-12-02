@@ -30,7 +30,7 @@ export default function PublicacionPage() {
         const token = sessionStorage.getItem("authToken");
         const headers = token ? { Authorization: `Bearer ${token}` } : {};
         const res = await axios.get(
-          `http://localhost:8000/api/anuncios/${anuncioId}/`,
+          `http://135.224.2.56/api/anuncios/${anuncioId}/`,
           { headers }
         );
         setAnuncio(res.data);

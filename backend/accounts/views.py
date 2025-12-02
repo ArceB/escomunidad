@@ -749,7 +749,7 @@ class UsuarioViewSet(viewsets.ModelViewSet):
         token = PasswordResetToken.objects.create(user=user)
 
         # Enviar correo
-        FRONTEND_URL = "http://localhost:5173"  # ajusta según tu setup
+        FRONTEND_URL = "http://135.224.2.56/"  # ajusta según tu setup
         link = f"{FRONTEND_URL}/crear-contraseña/{token.token}/"
 
         send_mail(
@@ -826,7 +826,7 @@ class ResendTokenView(APIView):
             reset_token = PasswordResetToken.objects.create(user=user)
 
             # Crear el enlace de restablecimiento
-            FRONTEND_URL = "http://localhost:5173"  # Ajusta la URL según tu configuración
+            FRONTEND_URL = "http://135.224.2.56/"  # Ajusta la URL según tu configuración
             link = f"{FRONTEND_URL}/crear-contraseña/{reset_token.token}/"
 
             # Enviar el correo con el enlace de restablecimiento
@@ -863,7 +863,7 @@ class ForgotPasswordView(APIView):
         # Crear nuevo token
         reset_token = PasswordResetToken.objects.create(user=user)
 
-        FRONTEND_URL = "http://localhost:5173"
+        FRONTEND_URL = "http://135.224.2.56/"
         link = f"{FRONTEND_URL}/crear-contraseña/{reset_token.token}/"
 
         send_mail(

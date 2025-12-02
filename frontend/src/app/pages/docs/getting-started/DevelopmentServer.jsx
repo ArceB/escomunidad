@@ -22,10 +22,10 @@ export function DevelopmentServer() {
         <p>
           Once the server is running, open your browser and navigate to{" "}
           <a
-            href="http://localhost:5173/"
+            href="http://135.224.2.56/"
             className="text-primary-600 hover:underline dark:text-primary-400"
           >
-            http://localhost:5173/
+            http://135.224.2.56/
           </a>{" "}
           The application will automatically reload whenever you make changes to
           the source files, providing a seamless development experience.

@@ -7,6 +7,10 @@ import pymysql
 
 from pathlib import Path
 
+from dotenv import load_dotenv
+load_dotenv()
+
+
 pymysql.install_as_MySQLdb()
 
 AUTH_USER_MODEL = "accounts.User"
@@ -18,9 +22,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-e&x2cjjsgvm8%-&45t(ldx)9+lx64ua^x-*gi_2bl&w_&af+$*'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = ["*"]
+
+CSRF_TRUSTED_ORIGINS = [
+    "http://135.224.2.56",
+    "https://135.224.2.56",
+]
 
 # ----------------------------
 # Application definition
@@ -37,9 +46,7 @@ INSTALLED_APPS = [
     "corsheaders",
     "accounts",
     
-    # 👇 --- ESTA ES LA LÍNEA QUE CAMBIAMOS --- 👇
-    'chatbot.apps.ChatbotConfig', # Antes decía 'chatbot',
-    # 👆 --- FIN DEL CAMBIO --- 👆
+    'chatbot.apps.ChatbotConfig', 
 
     "rest_framework_simplejwt.token_blacklist"
 ]
@@ -47,7 +54,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "middleware.prerender_middleware.PrerenderMiddleware",
     "django.middleware.security.SecurityMiddleware",
-    "corsheaders.middleware.CorsMiddleware",  # 👈 importante: después de SecurityMiddleware
+    "corsheaders.middleware.CorsMiddleware", 
 
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -83,8 +90,8 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'escomunidad',
-        "USER": "root",
-        "PASSWORD": "root",
+        "USER": "django",
+        "PASSWORD": "hola123",
         "HOST": "localhost",
         "PORT": "3306",
         "OPTIONS": {"charset": "utf8mb4"},
@@ -171,8 +178,8 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 
 EMAIL_HOST_USER = "apikey"  
-EMAIL_HOST_PASSWORD = "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"
+EMAIL_HOST_PASSWORD = os.getenv("SENDGRID_API_KEY")
 
 DEFAULT_FROM_EMAIL = "escomunidad.b084@gmail.com"
 
-
+RECAPTCHA_SITE_KEY = os.getenv("RECAPTCHA_SITE_KEY")
