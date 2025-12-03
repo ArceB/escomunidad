@@ -221,8 +221,6 @@ export default function NuevaEntidadPage() {
             navigate("/administracion/entidades");
         } catch (err) {
             console.error("Error al guardar entidad:", err.response || err);
-            
-            // Mensaje de error más descriptivo
             if (err.response?.status === 405) {
                 toast.error("Error 405: El servidor no permite este método en esta ruta.");
             } else if (err.response?.data?.foto_portada) {
