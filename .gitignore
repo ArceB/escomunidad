@@ -16,3 +16,9 @@ venv/
 # Ignorar archivos de configuración de editor
 .vscode/
 .idea/
+
+.env
+backend/.env
+frontend/.env
+backend/venv/
+backend/env/

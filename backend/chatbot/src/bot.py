@@ -83,9 +83,11 @@ except ImportError:
 # ==================================
 # VARIABLES GLOBALES DE CONFIGURACIÓN
 # ==================================
-API_KEY = "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"
-API_BASE = "https://openrouter.ai/api/v1"
+API_KEY = os.getenv("OPENROUTER_API_KEY")
+API_BASE = os.getenv("OPENROUTER_API_URL", "https://openrouter.ai/api/v1")
 
+if not API_KEY:
+    print("⚠️ ALERTA: No se encontró OPENROUTER_API_KEY en el archivo .env")
 # Modelo de Chat (LLM)
 LLM_MODEL_NAME = "deepseek/deepseek-v3.2-exp"
 # Modelo de Embeddings (Traductor)

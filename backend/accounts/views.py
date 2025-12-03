@@ -55,8 +55,7 @@ from .serializers import (
 User = get_user_model()
 
 # Registrar fuente Unicode compatible con acentos y eñes
-pdfmetrics.registerFont(TTFont('DejaVuSans', 'C:\\Windows\\Fonts\\arial.ttf'))
-
+pdfmetrics.registerFont(TTFont('DejaVuSans', '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'))
 
 # ---------- AUTH ----------
 class TokenObtainPairView(TokenViewBase):
