@@ -22,15 +22,14 @@ export const schema = Yup.object().shape({
     .min(1, "Debe seleccionar al menos un usuario"),
   cover: Yup.mixed()
     .nullable()
-    .required("Debe subir una imagen de portada")
     .test(
       "fileSize",
       "El archivo no debe superar 4MB",
-      (value) => value && value.size <= 4194304
+      (value) => {
+        return !value || value.size <= 4194304; 
+      }
     ),
   descripcion: Yup.mixed()
     .test("es-delta", "La descripción no es válida", (value) => !!value)
     .nullable(),
-
-
 });

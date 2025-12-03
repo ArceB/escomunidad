@@ -199,19 +199,18 @@ export default function NuevaEntidadPage() {
             if (isSuperAdmin && data.administrador_id) {
                 formData.append("administrador_input", data.administrador_id);
             } else if (!isSuperAdmin) {
-                const currentAdminId = user?.id;  // Obtener el admin actual
+                const currentAdminId = user?.id;
                 formData.append("administrador_input", currentAdminId);
             }
 
             if (entidadId) {
-                // Si estamos editando, hacemos un PUT
-                await axios.put(`/entidades/${entidadId}/`, formData, {
+                await axios.patch(`/entidades/${entidadId}/`, formData, {
                     headers: { "Content-Type": "multipart/form-data" },
                 });
 
                 toast.success("Entidad actualizada con éxito 🚀");
             } else {
-                // Si estamos creando, hacemos un POST
+                // Para crear SIEMPRE se usa POST
                 await axios.post("/entidades/", formData, {
                     headers: { "Content-Type": "multipart/form-data" },
                 });
@@ -221,8 +220,16 @@ export default function NuevaEntidadPage() {
 
             navigate("/administracion/entidades");
         } catch (err) {
-            console.error("Error al crear entidad:", err.response || err);
-            toast.error("Error al crear entidad ❌");
+            console.error("Error al guardar entidad:", err.response || err);
+            
+            // Mensaje de error más descriptivo
+            if (err.response?.status === 405) {
+                toast.error("Error 405: El servidor no permite este método en esta ruta.");
+            } else if (err.response?.data?.foto_portada) {
+                toast.error("Error: El servidor sigue pidiendo la imagen obligatoria.");
+            } else {
+                toast.error("Error al guardar la entidad ❌");
+            }
         }
     };
 
