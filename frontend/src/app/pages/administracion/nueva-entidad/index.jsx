@@ -282,7 +282,7 @@ export default function NuevaEntidadPage() {
                             <div className="col-span-12 lg:col-span-8">
                                 <Card className="p-4 sm:px-5 space-y-5">
                                     <Input
-                                        label="Nombre de la entidad"
+                                        label="Nombre de la entidad *"
                                         placeholder="Ingrese el nombre de la entidad"
                                         {...register("nombre")}
                                         error={errors?.nombre?.message}
@@ -328,7 +328,7 @@ export default function NuevaEntidadPage() {
                                                     displayField="username"  // Asegúrate de que 'username' es el campo que quieres mostrar
                                                     value={admins.find((u) => u.id === value) || null}
                                                     onChange={(val) => onChange(val?.id)}
-                                                    placeholder="Seleccione un administrador para la entidad"
+                                                    placeholder="Seleccione un administrador para la entidad *"
                                                     label="Administrador"
                                                     error={errors?.administrador_id?.message}
                                                     highlight
@@ -348,7 +348,7 @@ export default function NuevaEntidadPage() {
                                                 displayField="username"
                                                 value={responsables.find((r) => r.id === value) || null}
                                                 onChange={(val) => onChange(val?.id)}
-                                                placeholder="Seleccione un esponsable para la entidad"
+                                                placeholder="Seleccione un esponsable para la entidad *"
                                                 label="Responsable"
                                                 error={errors?.responsable_id?.message}
                                                 highlight
@@ -368,7 +368,7 @@ export default function NuevaEntidadPage() {
                                                 displayField="username"
                                                 value={usuarios.filter((u) => value?.includes(u.id))}
                                                 onChange={(vals) => onChange(vals.map((v) => v.id))}
-                                                placeholder="Seleccione usuario/s para la entidad"
+                                                placeholder="Seleccione usuario/s para la entidad *"
                                                 label="Usuarios"
                                                 searchFields={["username", "email"]}
                                                 error={errors?.usuarios?.message}
@@ -383,7 +383,7 @@ export default function NuevaEntidadPage() {
                                     <Controller
                                         render={({ field }) => (
                                             <CoverImageUpload
-                                                label="Foto de portada de la entidad"
+                                                label="Foto de portada de la entidad *"
                                                 existingImage={existingCover}
                                                 error={errors?.cover?.message}
                                                 {...field}
