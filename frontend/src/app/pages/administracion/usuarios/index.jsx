@@ -108,7 +108,7 @@ const NewUserForm = () => {
               <div className="col-span-12 lg:col-span-8">
                 <Card className="p-4 sm:px-5 space-y-5">
                   <Input
-                    label="Nombre"
+                    label="Nombre *"
                     placeholder="Ingrese el nombre"
                     prefix={<UserIcon className="size-5" />}
                     {...register("first_name")}
@@ -116,7 +116,7 @@ const NewUserForm = () => {
                   />
 
                   <Input
-                    label="Apellido"
+                    label="Apellido *"
                     placeholder="Ingrese el apellido"
                     prefix={<UserIcon className="size-5" />}
                     {...register("last_name")}
@@ -124,7 +124,7 @@ const NewUserForm = () => {
                   />
 
                   <Input
-                    label="Correo electrónico"
+                    label="Correo electrónico *"
                     placeholder="ejemplo@correo.com"
                     prefix={<EnvelopeIcon className="size-5" />}
                     {...register("email")}
@@ -139,7 +139,7 @@ const NewUserForm = () => {
                         displayField="label"
                         value={ROLE_OPTIONS.find((r) => r.value === value) || null}
                         onChange={(val) => onChange(val?.value)}
-                        placeholder="Seleccione un rol"
+                        placeholder="Seleccione un rol *"
                         label="Rol"
                         error={errors?.role?.message}
                         highlight

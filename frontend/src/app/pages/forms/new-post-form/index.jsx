@@ -322,19 +322,19 @@ const NewPostForm = ({ entidadId }) => {
                 <div className="mt-5 space-y-5">
                   <Input
                     label="Título"
-                    placeholder="Ingrese el título del anuncio"
+                    placeholder="Ingrese el título del anuncio *"
                     {...register("titulo")}
                     error={errors?.titulo?.message}
                   />
                   <Input
                     label="Frase"
-                    placeholder="Ingrese una frase para el anuncio"
+                    placeholder="Ingrese una frase para el anuncio *"
                     {...register("frase")}
                     error={errors?.frase?.message}
                   />
 
                   <div className="flex flex-col">
-                    <span>Descripción</span>
+                    <span>Descripción *</span>
                     <div className="quill-editor-wrapper">
                       <Controller
                         control={control}
@@ -364,7 +364,7 @@ const NewPostForm = ({ entidadId }) => {
                     render={({ field }) => (
                       <CoverImageUpload
                         classNames={{ box: "mt-1.5" }}
-                        label="Imagen del banner"
+                        label="Imagen del banner *"
                         error={errors?.banner?.message}
                         existingImage={existingCover}
                         {...field}
