@@ -12,12 +12,15 @@ import { useParams } from "react-router";
 import { useEffect, useState } from "react";
 import axios from "utils/axios";
 
+import Bienvenido from "app/pages/administracion/bienvenido";
+import { useAuthContext } from "app/contexts/auth/context";
 
 // ----------------------------------------------------------------------
 
 export default function PostDetails() {
   const { id } = useParams(); // ID del anuncio
   const [anuncio, setAnuncio] = useState(null);
+  const { isAuthenticated } = useAuthContext();
 
   console.log("Anuncio recibido:", anuncio);
 
@@ -41,6 +44,7 @@ export default function PostDetails() {
       <div className="transition-content grid w-full grid-cols-12 px-(--margin-x) lg:gap-6">
         <div className="col-span-12 pt-6 lg:col-span-8 lg:pb-6">
           <Card className="p-4 lg:p-6">
+            {isAuthenticated && <Bienvenido />}
             <PostHeader />
             
             <PostContent anuncio={anuncio} />

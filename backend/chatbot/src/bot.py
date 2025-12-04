@@ -83,7 +83,7 @@ except ImportError:
 # ==================================
 # VARIABLES GLOBALES DE CONFIGURACIÓN
 # ==================================
-API_KEY = "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"
+API_KEY = "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"
 API_BASE = "https://openrouter.ai/api/v1"
 
 # Modelo de Chat (LLM)
@@ -510,11 +510,16 @@ class ChatBot:
                 return "Lo siento, solo puedo responder en español."
 
         # Prueba 4: Un solo término ambiguo (SIN CAMBIOS)
+        # Prueba 4: Un solo término -> Auto-completado (MODIFICADO)
         if (num_palabras_limpias == 1 and 
             pregunta_norm not in PALABRAS_SEGURAS_DE_UNA_SOLA_PALABRA and
-            not contiene_palabra_de(SALUDOS_KEYWORDS, pregunta_norm)): # Excepción extra
-            print(" <i> -> [ask] ⚠️ Pregunta demasiado ambigua (1 palabra). Pidiendo contexto.")
-            return "Tu consulta es muy breve. ¿Podrías proporcionarme más contexto o detalles?"
+            not contiene_palabra_de(SALUDOS_KEYWORDS, pregunta_norm)):
+            print(f" <i> -> [ask] Palabra única detectada ('{pregunta}'). Expandiendo contexto...")
+            # Concatenamos la frase
+            pregunta = f"Dame información sobre {pregunta}"
+            # Actualizamos la variable normalizada y para detector por si se usan después
+            pregunta_norm = normalizar_texto(pregunta)
+            pregunta_para_detector = limpiar_para_langdetect(pregunta)
         # --- FIN DE VALIDACIONES ---
         
         print(f" <i> -> Contexto de Anuncio ID: {context_id}")
@@ -632,8 +637,7 @@ Tu respuesta JSON:
 
         **REGLA MÁS IMPORTANTE:** La fecha de hoy es **{fecha_actual}**.
 
-        **Fechas detectadas en el contexto y su clasificación:**  
-        {tabla_fechas}
+        **Fechas detectadas en el contexto y su clasificación:** {tabla_fechas}
 
         * Si una fecha está clasificada como PASADO, debes expresarla en pasado.
         * Si está clasificada como FUTURO, debes expresarla en futuro.
@@ -644,6 +648,11 @@ Tu respuesta JSON:
         * Si la información NO está en el contexto, responde exactamente:
         "Lo siento, no pude encontrar información sobre eso en mis documentos."
 
+        **Regla de Estilo (NUEVA):**
+        * RESPONDE DIRECTAMENTE. 
+        * NO uses frases introductorias como "Según la información disponible", "Basado en el contexto", "La información indica que", etc.
+        * Ve directo al grano con la respuesta.
+
         ---
         **Contexto disponible:**
         {context}
@@ -651,7 +660,7 @@ Tu respuesta JSON:
         **Pregunta actual:**
         {question}
 
-        **Respuesta (con tiempos verbales correctos):**
+        **Respuesta directa (con tiempos verbales correctos):**
         """
 
         

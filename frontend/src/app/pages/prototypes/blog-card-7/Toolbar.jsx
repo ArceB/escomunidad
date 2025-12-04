@@ -11,14 +11,15 @@ import {
 } from "@headlessui/react";
 import {
   ChevronDownIcon,
-  Cog8ToothIcon,
   MagnifyingGlassIcon,
   PlusIcon,
   XMarkIcon,
+  XCircleIcon,
 } from "@heroicons/react/24/outline";
-import { RiFilter3Line } from "react-icons/ri";
+//import { RiFilter3Line } from "react-icons/ri";
 import clsx from "clsx";
 import { Building2 } from "lucide-react";
+import { ArrowPathIcon } from "@heroicons/react/24/outline";
 import axios from "utils/axios";
 
 
@@ -142,21 +143,6 @@ export function Toolbar({ query, setQuery, mostrandoPendientes }) {
             >
               <MagnifyingGlassIcon className="size-5" />
             </Button>
-
-            <Button
-              className="size-9 shrink-0 rounded-full"
-              isIcon
-              variant="flat"
-            >
-              <RiFilter3Line className="size-5" />
-            </Button>
-            <Button
-              className="size-9 shrink-0 rounded-full"
-              isIcon
-              variant="flat"
-            >
-              <Cog8ToothIcon className="size-5" />
-            </Button>
           </div>
         </>
       )}
@@ -227,7 +213,7 @@ function ActionMenu({ mostrandoPendientes }) {
                     "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100"
                   )}
                 >
-                  <Cog8ToothIcon className="size-4.5 stroke-2" />
+                  <ArrowPathIcon  className="size-4.5 stroke-2" />
                   <span>{mostrandoPendientes ? "Ver todos" : "Pendientes"}</span>
                 </button>
               )}
@@ -250,7 +236,7 @@ function ActionMenu({ mostrandoPendientes }) {
                     focus && "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100"
                   )}
                 >
-                  <Cog8ToothIcon className="size-4.5 stroke-2" />
+                  <XCircleIcon className="size-4.5 stroke-2" />
                   <span>{isRechazados ? "Ver todos" : "Rechazados"}</span>
                 </button>
               )}
@@ -273,7 +259,7 @@ function ActionMenu({ mostrandoPendientes }) {
                     focus && "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100"
                   )}
                 >
-                  <Cog8ToothIcon className="size-4.5 stroke-2" />
+                  <ArrowPathIcon  className="size-4.5 stroke-2" />
                   <span>
                     {window.location.pathname.includes("pendientes-usuario")
                       ? "Ver todos"

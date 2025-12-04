@@ -42,7 +42,14 @@ export default function BlogCard2({ onCardClick, data }) {
             .map(({ item: entidad }) => (
               <div
                 key={entidad.id}
-                onClick={() => onCardClick?.(entidad)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  const selectedText = window.getSelection().toString();
+                  if (selectedText.length === 0) {
+                    onCardClick?.(entidad);
+                  }
+                }}
+
                 className="cursor-pointer"
               >
                 <PostCard

@@ -14,6 +14,8 @@ import { RecentArticles } from "app/pages/prototypes/post-details/RecentArticles
 import { PostHeader } from "app/pages/prototypes/post-details/PostHeader";
 import { useAuthContext } from "app/contexts/auth/context";
 import RechazoDrawer from "app/pages/components/drawer/RechazoDrawer";
+
+//import Bienvenido from "app/pages/administracion/bienvenido";
 // ----------------------------------------------------------------------
 
 export default function PublicacionPage() {
@@ -47,6 +49,7 @@ export default function PublicacionPage() {
   if (loading) return <p>Cargando anuncio...</p>;
 
   const estado = anuncio ? anuncio.estado : "pendiente";
+  
 
   return (
     <>
@@ -63,6 +66,7 @@ export default function PublicacionPage() {
       <Page title="Administración - Publicación">
         <NavBar showNotifications />
         <main className="transition-content w-full px-(--margin-x) pt-24 pb-8">
+          
           <Card className="p-4 lg:p-6">
             
             {anuncio ? (

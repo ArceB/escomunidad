@@ -87,6 +87,7 @@ export function AuthProvider({ children }) {
           id: payload.user_id,
           username: payload.username,
           entidad_id: payload.entidad_id ?? null,
+          first_name: payload.first_name,
         };
 
         sessionStorage.setItem("lastActivity", Date.now());
@@ -132,6 +133,7 @@ export function AuthProvider({ children }) {
         id: payload.user_id,
         username: payload.username,
         entidad_id: payload.entidad_id ?? null,
+        first_name: payload.first_name,
       };
 
       // Usar el role devuelto por el backend (si existe)

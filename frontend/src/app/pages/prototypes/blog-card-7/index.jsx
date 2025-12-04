@@ -70,7 +70,13 @@ export default function BlogCard7({ onCardClick, entidadId }) {
               return (
                 <div
                   key={anuncio.id}
-                  onClick={() => onCardClick?.(anuncio)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    const selectedText = window.getSelection().toString();
+                    if (selectedText.length === 0) {
+                      onCardClick?.(anuncio);
+                    }
+                  }}
                   className="cursor-pointer"
                 >
                   <PostCard

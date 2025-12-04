@@ -30,7 +30,7 @@ export function PostCard({ entidad, created_at, cover, title, category, query, o
           <div className="mt-1">
             <a
               href="##"
-              className="text-lg font-medium text-gray-700 hover:text-primary-600 focus:text-primary-600 dark:text-dark-100 dark:hover:text-primary-400 dark:focus:text-primary-400"
+              className="text-lg font-bold text-gray-700 hover:text-primary-600 focus:text-primary-600 dark:text-dark-100 dark:hover:text-primary-400 dark:focus:text-primary-400"
             >
               <Highlight query={query}>{title}</Highlight>
             </a>
