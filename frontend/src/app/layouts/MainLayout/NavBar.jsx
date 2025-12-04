@@ -68,12 +68,12 @@ export default function NavBar({ showNotifications = false }) {
           />
         </div>
 
-        {/* Barra de búsqueda */}
+        {/* Barra de búsqueda 
         <div className="flex items-center gap-2">
           <Search
             renderButton={(open) => (
               <>
-                {/* Versión desktop */}
+                
                 <Button
                   onClick={open}
                   unstyled
@@ -88,7 +88,7 @@ export default function NavBar({ showNotifications = false }) {
                   <SlashIcon />
                 </Button>
 
-                {/* Versión móvil */}
+                
                 <Button
                   onClick={open}
                   variant="flat"
@@ -101,6 +101,7 @@ export default function NavBar({ showNotifications = false }) {
             )}
           />
         </div>
+        */}
 
         {/* Navegación + Notificaciones */}
         <div className="flex items-center space-x-6">
