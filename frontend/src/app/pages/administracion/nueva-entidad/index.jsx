@@ -287,27 +287,27 @@ export default function NuevaEntidadPage() {
                             <div className="col-span-12 lg:col-span-8">
                                 <Card className="p-4 sm:px-5 space-y-5">
                                     <Input
-                                        label="Nombre"
-                                        placeholder="Ingrese el nombre"
+                                        label="Nombre de la entidad *"
+                                        placeholder="Ingrese el nombre de la entidad"
                                         {...register("nombre")}
                                         error={errors?.nombre?.message}
                                     />
 
                                     <Input
-                                        label="Correo electrónico"
+                                        label="Correo electrónico de la entidad"
                                         placeholder="ejemplo@correo.com"
                                         {...register("correo")}
                                         error={errors?.correo?.message}
                                     />
 
                                     <Input
-                                        label="Teléfono"
+                                        label="Teléfono de la entidad"
                                         placeholder="55112233"
                                         {...register("telefono")}
                                         error={errors?.telefono?.message}
                                     />
                                     <div className="flex flex-col">
-                                        <span className="font-medium text-gray-700 dark:text-dark-50">Descripción</span>
+                                        <span className="font-medium text-gray-700 dark:text-dark-50">Descripción de la entidad</span>
                                         <Controller
                                             name="descripcion"
                                             control={control}
@@ -315,7 +315,7 @@ export default function NuevaEntidadPage() {
                                                 <TextEditor
                                                     value={value}
                                                     onChange={(delta) => onChange(delta)}
-                                                    placeholder="Escribe una breve descripción..."
+                                                    placeholder="Escribe una breve descripción de la entidad..."
                                                     modules={editorModules}
                                                     className="mt-1.5 [&_.ql-editor]:max-h-80 [&_.ql-editor]:min-h-[12rem]"
                                                     error={errors?.descripcion?.message}
@@ -333,7 +333,7 @@ export default function NuevaEntidadPage() {
                                                     displayField="username"  // Asegúrate de que 'username' es el campo que quieres mostrar
                                                     value={admins.find((u) => u.id === value) || null}
                                                     onChange={(val) => onChange(val?.id)}
-                                                    placeholder="Seleccione Administrador"
+                                                    placeholder="Seleccione un administrador para la entidad *"
                                                     label="Administrador"
                                                     error={errors?.administrador_id?.message}
                                                     highlight
@@ -353,7 +353,7 @@ export default function NuevaEntidadPage() {
                                                 displayField="username"
                                                 value={responsables.find((r) => r.id === value) || null}
                                                 onChange={(val) => onChange(val?.id)}
-                                                placeholder="Seleccione Responsable"
+                                                placeholder="Seleccione un esponsable para la entidad *"
                                                 label="Responsable"
                                                 error={errors?.responsable_id?.message}
                                                 highlight
@@ -373,7 +373,7 @@ export default function NuevaEntidadPage() {
                                                 displayField="username"
                                                 value={usuarios.filter((u) => value?.includes(u.id))}
                                                 onChange={(vals) => onChange(vals.map((v) => v.id))}
-                                                placeholder="Seleccione usuarios"
+                                                placeholder="Seleccione usuario/s para la entidad *"
                                                 label="Usuarios"
                                                 searchFields={["username", "email"]}
                                                 error={errors?.usuarios?.message}
@@ -388,7 +388,7 @@ export default function NuevaEntidadPage() {
                                     <Controller
                                         render={({ field }) => (
                                             <CoverImageUpload
-                                                label="Foto de portada"
+                                                label="Foto de portada de la entidad *"
                                                 existingImage={existingCover}
                                                 error={errors?.cover?.message}
                                                 {...field}
