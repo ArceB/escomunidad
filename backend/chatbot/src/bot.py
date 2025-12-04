@@ -91,7 +91,7 @@ if not API_KEY:
 # Modelo de Chat (LLM)
 LLM_MODEL_NAME = "deepseek/deepseek-v3.2-exp"
 # Modelo de Embeddings (Traductor)
-EMBEDDINGS_MODEL_NAME = "BAAI/bge-m3"
+EMBEDDINGS_MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
 # ==================================
 
 
