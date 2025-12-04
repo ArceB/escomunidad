@@ -1,13 +1,13 @@
 import { Building2, Users, Bell, LogOut } from "lucide-react";
-import { Search } from "components/template/Search";
+//import { Search } from "components/template/Search";
 import { Button } from "components/ui";
-import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
-import SearchIcon from "assets/dualicons/search.svg?react";
+//import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
+//import SearchIcon from "assets/dualicons/search.svg?react";
 import { Notifications } from "components/template/Notifications";
 import { useNavigate } from "react-router";
 import { useAuthContext } from "app/contexts/auth/context";
 import axios from "utils/axios";
-
+/*
 function SlashIcon(props) {
   return (
     <svg
@@ -27,6 +27,7 @@ function SlashIcon(props) {
     </svg>
   );
 }
+  */
 
 export default function NavBar({ showNotifications = false }) {
   const navigate = useNavigate();
